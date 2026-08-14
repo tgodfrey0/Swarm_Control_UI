@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package swarmdeck.v1;
+
+// A robot agent establishes one long-lived bidirectional stream to the
+// control host. The agent is deliberately generic: it executes shell
+// commands supplied by the host and streams logs/status back.
+service Agent {
+  rpc Session(stream Report) returns (stream Command);
+}
+
+// ---------------------------------------------------------------------------
+// Agent -> Host
+// ---------------------------------------------------------------------------
+message Report {
+  oneof report {
+    Register register = 1;
+    Heartbeat heartbeat = 2;
+    Status status = 3;
+    ActionLog log = 4;
+    ActionResult result = 5;
+    ActionAck ack = 6;
+  }
+}
+
+message Register {
+  string robot_id = 1;
+  string id_code = 2;
+  string agent_version = 3;
+  string hostname = 4;
+  map<string, string> capabilities = 5;
+}
+
+message Heartbeat {
+  uint64 timestamp_ms = 1;
+}
+
+message Status {
+  uint64 timestamp_ms = 1;
+  // id of the currently running action, empty string when idle.
+  string active_action_id = 2;
+  double cpu_usage = 3;
+  uint64 memory_used_kb = 4;
+  uint64 uptime_sec = 5;
+  // Battery level in percent; 0 means unknown/unavailable.
+  float battery_percent = 6;
+}
+
+message ActionLog {
+  string action_id = 1;
+  uint32 seq = 2;
+  // stdout/stderr chunk. `stderr` distinguishes the stream.
+  bytes data = 3;
+  bool stderr = 4;
+}
+
+message ActionResult {
+  string action_id = 1;
+  uint32 exit_code = 2;
+  bool killed = 3;
+  string error = 4;
+  uint64 started_ms = 5;
+  uint64 finished_ms = 6;
+}
+
+message ActionAck {
+  string action_id = 1;
+  bool accepted = 2;
+  string reason = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Host -> Agent
+// ---------------------------------------------------------------------------
+message Command {
+  oneof command {
+    RunAction run = 1;
+    StopAction stop = 2;
+    Ping ping = 3;
+  }
+}
+
+message RunAction {
+  // Unique id assigned by the host for this invocation (used for logs/results).
+  string action_id = 1;
+  // Config-defined action name (e.g. "turtlebot3.bringup") for display.
+  string action_name = 2;
+  // Shell command, already resolved by the host (templates expanded,
+  // per-robot values substituted).
+  string command = 3;
+  map<string, string> env = 4;
+  string cwd = 5;
+  // Seconds until the agent kills the process; 0 = no timeout.
+  uint32 timeout_sec = 6;
+  // If true, the agent terminates the action when the connection drops.
+  bool kill_on_disconnect = 7;
+}
+
+message StopAction {
+  string action_id = 1;
+}
+
+message Ping {
+  uint64 timestamp_ms = 1;
+}

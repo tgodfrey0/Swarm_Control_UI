@@ -1,0 +1,53 @@
+# Lab swarm. Robots phone home to this controller (address only needed by the
+# provisioner to reach them for installing the agent).
+# Robot types are shared and live in robots/.
+# Start the host with:
+#   swarmdeck --swarm configs/lab
+
+[controller]
+name = "lab-1"
+id_code = "lab1-swarm-secret"
+grpc_listen = "0.0.0.0:50051"
+ui_bind = "0.0.0.0:8080"
+
+# [controller.tls]
+# cert = "certs/host.crt"
+# key  = "certs/host.key"
+# ca   = "certs/ca.crt"
+
+# Swarm-level actions: dispatched by bare name to any robot, regardless of
+# type. Generic bringup/teardown commands live per-robot-type instead.
+[actions.start_trial]
+command = "echo starting trial on {{robot_id}}"
+timeout_sec = 60
+
+[[robots]]
+id = "tb-01"
+name = "turtlebot-1"
+type = "turtlebot3"
+address = "10.0.0.21"
+env = { ROS_DOMAIN_ID = "42" }
+vars = { ns = "tb01", model = "burger" }
+
+[[robots]]
+id = "tb-02"
+name = "turtlebot-2"
+type = "turtlebot3"
+address = "10.0.0.22"
+env = { ROS_DOMAIN_ID = "42" }
+vars = { ns = "tb02", model = "waffle" }
+
+[[robots]]
+id = "uav-01"
+name = "mav-1"
+type = "uav"
+# Tailscale IP: agent phones home from here, provisioner can also reach it.
+address = "100.64.0.5"
+vars = { mav_id = "1", alt_m = "10.0" }
+
+[[robots]]
+id = "uav-02"
+name = "mav-2"
+type = "uav"
+address = "100.64.0.6"
+vars = { mav_id = "2", alt_m = "12.0" }

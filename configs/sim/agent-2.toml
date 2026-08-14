@@ -1,0 +1,6 @@
+# Local config for the second sim robot (configs/sim/swarm.toml).
+robot_id = "sim-02"
+
+[controller]
+endpoint = "127.0.0.1:50152"
+id_code  = "sim-swarm-secret"

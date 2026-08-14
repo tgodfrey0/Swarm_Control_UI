@@ -1,0 +1,15 @@
+[package]
+name = "swarmdeck-proto"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+prost = "0.14"
+tonic.workspace = true
+tonic-prost = "0.14"
+
+[build-dependencies]
+tonic-prost-build = "0.14"

@@ -1,0 +1,43 @@
+# Local sim swarm: 2 fake robots that phone home from this machine.
+# Distinct ports from the lab swarm so both can run at once.
+#
+# Start it:
+#   pixi run host -- --swarm configs/sim
+# Then, in two other terminals:
+#   pixi run agent-sim -- --config configs/sim/agent-1.toml
+#   pixi run agent-sim -- --config configs/sim/agent-2.toml
+# Open http://localhost:18082.
+
+[controller]
+name = "sim-1"
+id_code = "sim-swarm-secret"
+grpc_listen = "127.0.0.1:50152"
+ui_bind = "127.0.0.1:18082"
+
+# Swarm-level action example: fanned out to every robot by bare name.
+[actions.trial]
+command = "echo starting trial on {{robot_id}}"
+timeout_sec = 30
+
+# Dangerous example: the host refuses to fan this out to >1 robot unless the
+# dispatch is confirmed (CLI --yes / WebUI confirm checkbox).
+[actions.trial_danger]
+command = "echo dangerous trial on {{robot_id}}"
+timeout_sec = 30
+dangerous = true
+
+[[robots]]
+id = "sim-01"
+name = "sim-robot-1"
+type = "sim"
+simulated = true
+address = "127.0.0.1"
+vars = { demo = "alpha" }
+
+[[robots]]
+id = "sim-02"
+name = "sim-robot-2"
+type = "sim"
+simulated = true
+address = "127.0.0.1"
+vars = { demo = "beta" }

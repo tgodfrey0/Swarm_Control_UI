@@ -1,0 +1,24 @@
+# TurtleBot3 ground robots (used with a ROS2-based controller).
+# Robot types are shared across swarms and merged from this directory by
+# default (`--robot-types robots`).
+
+[robot_types.turtlebot3]
+display_name = "TurtleBot3"
+
+[robot_types.turtlebot3.actions.bringup]
+command = "ros2 launch turtlebot3_bringup turtlebot3_core.launch.py"
+timeout_sec = 120
+dangerous = false
+
+[robot_types.turtlebot3.actions.controller]
+# Per-robot `vars.ns` and `vars.model` are substituted by the host before send.
+command = "ros2 run swarm_utils follower --namespace {{vars.ns}} --model {{vars.model}}"
+timeout_sec = 0
+
+[robot_types.turtlebot3.actions.rotate]
+command = "ros2 topic pub -1 /{{vars.ns}}/cmd_vel geometry_msgs/msg/Twist \"{linear: {x: 0.0}, angular: {z: 0.6}}\""
+timeout_sec = 30
+
+[robot_types.turtlebot3.actions.shutdown]
+command = "sudo shutdown -h now"
+dangerous = true

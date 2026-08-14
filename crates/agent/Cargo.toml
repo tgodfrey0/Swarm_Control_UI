@@ -1,0 +1,25 @@
+[package]
+name = "swarmdeck-agent"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "SwarmDeck agent: runs on each robot, executes commands from the control host"
+
+[[bin]]
+name = "swarmdeck-agent"
+path = "src/main.rs"
+
+[dependencies]
+swarmdeck-core.workspace = true
+swarmdeck-proto.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+tonic = { workspace = true, features = ["tls-ring", "tls-webpki-roots"] }
+libc = "0.2"
+tokio-stream.workspace = true
+futures-util.workspace = true

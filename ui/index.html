@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SwarmDeck</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <h1>SwarmDeck <span class="controller" id="controller-name"></span></h1>
+    <div id="conn" class="conn connecting">connecting…</div>
+  </header>
+
+  <main>
+    <section id="swarm">
+      <h2>Swarm</h2>
+      <div id="robots" class="grid"></div>
+    </section>
+
+    <aside>
+      <section>
+        <h2>Dispatch</h2>
+        <form id="run-form" autocomplete="off">
+          <label>Action
+            <select id="run-action" required>
+              <option value="">choose an action…</option>
+            </select>
+          </label>
+          <label>Targets
+            <select id="run-targets" name="targets">
+              <option value="all">-- all robots --</option>
+              <optgroup label="Robot types" id="run-type-opts"></optgroup>
+              <optgroup label="Robots" id="run-robot-opts"></optgroup>
+              <option value="custom">custom list…</option>
+            </select>
+          </label>
+          <label id="run-robots-label" hidden>Robots (comma-separated)
+            <input id="run-robots" type="text" placeholder="tb-01,tb-02">
+          </label>
+          <label>Timeout override (s, 0 = config)
+            <input id="run-timeout" type="number" min="0" value="0">
+          </label>
+          <button type="submit" id="run-submit">Run</button>
+          <div id="run-result" class="result"></div>
+        </form>
+      </section>
+
+      <section>
+        <h2>Recent runs</h2>
+        <div id="runs"></div>
+      </section>
+    </aside>
+
+    <section id="logs">
+      <h2>Logs
+        <span id="log-robot" class="muted"></span>
+      </h2>
+      <div id="log-view" class="log"></div>
+      <button id="log-follow" class="follow">following…</button>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="modal-title">Error</h3>
+      <p id="modal-text"></p>
+      <button id="modal-close" type="button">OK</button>
+    </div>
+  </div>
+</body>
+</html>

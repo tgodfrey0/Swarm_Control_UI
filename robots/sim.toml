@@ -1,0 +1,22 @@
+# Simulated robot type for local testing (runs plain shell commands on this
+# host). Shared like every other type, so the lab swarm can use it too.
+# Robots using this type must be marked `simulated = true` in the swarm file.
+
+[robot_types.sim]
+display_name = "Sim"
+
+[robot_types.sim.actions.echo]
+command = "echo hello from {{robot_id}}"
+timeout_sec = 30
+
+[robot_types.sim.actions.sleep]
+command = "sleep 5"
+timeout_sec = 30
+
+[robot_types.sim.actions.fail]
+command = "exit 3"
+timeout_sec = 10
+
+[robot_types.sim.actions.whoami]
+command = "echo robot={{robot_id}} name={{robot_name}} var={{vars.demo}}"
+timeout_sec = 30

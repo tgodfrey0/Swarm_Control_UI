@@ -1,0 +1,380 @@
+"use strict";
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const state = {
+  robots: new Map(),   // id -> RobotView
+  runs: [],            // RunView[]
+  types: [],           // (kept for future use; actions come from /api/actions)
+  actions: { robotType: [], swarm: [] }, // dispatchable refs from /api/actions
+  selectedRobot: null, // id currently shown in the log panel
+  follow: true,
+  modalOk: null,       // callback to run when the modal's OK is pressed
+};
+
+// ---------------------------------------------------------------------------
+// DOM helpers
+// ---------------------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+
+// ---------------------------------------------------------------------------
+// Initial load
+// ---------------------------------------------------------------------------
+async function init() {
+  const results = await Promise.allSettled([fetchConfig(), fetchRobots(), fetchRuns(), fetchActions()]);
+  const failed = results.filter((r) => r.status === "rejected");
+  if (failed.length) {
+    console.warn("initial fetch failed", failed.map((r) => r.reason));
+  }
+  renderRobots();
+  renderRuns();
+  populateActionSelect();
+  bindRunForm();
+  bindModal();
+  bindLogFollow();
+  connectWs();
+}
+
+async function fetchJson(url, opts) {
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `${res.status}`);
+  }
+  return res.json();
+}
+
+async function fetchRobots() {
+  const list = await fetchJson("/api/robots");
+  state.robots = new Map(list.map((r) => [r.id, r]));
+}
+
+async function fetchRuns() {
+  state.runs = await fetchJson("/api/runs");
+}
+
+async function fetchActions() {
+  // The wire contract uses snake_case ({"robot_type": [...], "swarm": [...]});
+  // normalize into the camelCase shape the rest of this file uses.
+  const view = await fetchJson("/api/actions");
+  state.actions = { robotType: view.robot_type || [], swarm: view.swarm || [] };
+}
+
+async function fetchConfig() {
+  const cfg = await fetchJson("/api/config");
+  const name = cfg && cfg.controller ? cfg.controller : "";
+  const el = $("controller-name");
+  if (el) el.textContent = name;
+  if (name) document.title = `SwarmDeck — ${name}`;
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+function renderRobots() {
+  const grid = $("robots");
+  grid.innerHTML = "";
+  const robots = [...state.robots.values()].sort((a, b) => a.id.localeCompare(b.id));
+  if (robots.length === 0) {
+    grid.innerHTML = '<p class="muted">No robots yet. Start an agent (or run <code>swarmdeck-cli sim</code>).</p>';
+    return;
+  }
+  for (const r of robots) {
+    const cls = r.connected ? (r.simulated ? "dot sim" : "dot on") : "dot off";
+    const active = r.active ? `<div class="active" title="${escapeHtml(r.active.action_name)}">▶ ${escapeHtml(r.active.action_name)}</div>` : "";
+    const card = document.createElement("div");
+    card.className = "card" + (state.selectedRobot === r.id ? " selected" : "");
+    card.innerHTML = `
+      <div class="row">
+        <span class="name">${escapeHtml(r.name)}</span>
+        <span class="dot ${cls}"></span>
+      </div>
+      <div class="kind">${escapeHtml(r.kind)} · ${escapeHtml(r.id)}</div>
+      <div class="meta">
+        <span>${r.connected ? `@ ${r.hostname || r.address || "?"}` : "offline"}</span>
+      </div>
+      ${active}`;
+    card.onclick = () => selectRobot(r.id);
+    grid.appendChild(card);
+  }
+  if (state.selectedRobot && !state.robots.has(state.selectedRobot)) {
+    state.selectedRobot = null;
+    updateLogHeader();
+  }
+  populateTargetSelect();
+}
+
+function renderRuns() {
+  const box = $("runs");
+  box.innerHTML = "";
+  for (const run of state.runs.slice(0, 20)) {
+    const statuses = run.robots
+      .map(([robot, st]) => `<span class="rs ${st.status}">${escapeHtml(robot)}: ${st.status}</span>`)
+      .join("");
+    const el = document.createElement("div");
+    el.className = "run";
+    el.innerHTML = `<div class="action">${escapeHtml(run.action)}</div>
+      <div class="muted">${escapeHtml(run.run_id)}</div>
+      <div class="status">${statuses}</div>`;
+    box.appendChild(el);
+  }
+}
+
+function populateActionSelect() {
+  const sel = $("run-action");
+  const groups = [
+    ["Swarm Tasks", state.actions.swarm],
+    ["Robot Tasks", state.actions.robotType],
+  ];
+  sel.innerHTML = `<option value="">choose an action…</option>`;
+  for (const [label, items] of groups) {
+    if (!items.length) continue;
+    const og = document.createElement("optgroup");
+    og.label = label;
+    for (const a of items) {
+      const opt = document.createElement("option");
+      opt.value = a;
+      opt.textContent = a;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
+  }
+}
+
+function populateTargetSelect() {
+  const typeGroup = $("run-type-opts");
+  const robotGroup = $("run-robot-opts");
+  const prev = $("run-targets").value;
+  typeGroup.innerHTML = "";
+  robotGroup.innerHTML = "";
+  const types = [...new Set([...state.robots.values()].map((r) => r.kind))].sort();
+  for (const t of types) {
+    const opt = document.createElement("option");
+    opt.value = `type:${t}`;
+    opt.textContent = `all ${t}`;
+    typeGroup.appendChild(opt);
+  }
+  const robots = [...state.robots.values()].sort((a, b) => a.id.localeCompare(b.id));
+  for (const r of robots) {
+    const opt = document.createElement("option");
+    opt.value = `robot:${r.id}`;
+    opt.textContent = r.id + (r.name !== r.id ? ` (${r.name})` : "") + (r.connected ? "" : " — offline");
+    robotGroup.appendChild(opt);
+  }
+  // optgroups have no `.options`; collect their <option> children directly.
+  const typeOpts = [...typeGroup.children].filter((n) => n.tagName === "OPTION");
+  const robotOpts = [...robotGroup.children].filter((n) => n.tagName === "OPTION");
+  if ([...typeOpts, ...robotOpts].some((o) => o.value === prev)) {
+    $("run-targets").value = prev;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WebSocket
+// ---------------------------------------------------------------------------
+function connectWs() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(`${proto}://${location.host}/api/ws`);
+  let opened = false;
+  // If the socket never opens (host down), stop showing "connecting…" and
+  // fall back to "offline" until the retry succeeds.
+  const openedTimeout = setTimeout(() => { if (!opened) setConn(false); }, 3000);
+  ws.onopen = () => { opened = true; clearTimeout(openedTimeout); setConn(true); };
+  ws.onclose = () => { clearTimeout(openedTimeout); setConn(false); setTimeout(connectWs, 2000); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (ev) => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+    switch (msg.type) {
+      case "robots":
+        state.robots = new Map(msg.robots.map((r) => [r.id, r]));
+        renderRobots();
+        break;
+      case "robot":
+        state.robots.set(msg.robot.id, msg.robot);
+        renderRobots();
+        break;
+      case "runs":
+        state.runs = msg.runs;
+        renderRuns();
+        break;
+      case "run":
+        upsertRun(msg.run);
+        renderRuns();
+        break;
+      case "logs":
+        if (msg.robot === state.selectedRobot) appendLogs(msg.lines);
+        break;
+    }
+  };
+}
+
+function upsertRun(run) {
+  const i = state.runs.findIndex((r) => r.run_id === run.run_id);
+  if (i >= 0) state.runs[i] = run;
+  else state.runs.unshift(run);
+}
+
+function setConn(up) {
+  const el = $("conn");
+  el.className = "conn " + (up ? "online" : "offline");
+  el.textContent = up ? "online" : "offline";
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch form
+// ---------------------------------------------------------------------------
+function bindRunForm() {
+  $("run-targets").onchange = (e) => {
+    $("run-robots-label").hidden = e.target.value !== "custom";
+  };
+  $("run-form").onsubmit = (ev) => {
+    ev.preventDefault();
+    dispatch(false);
+  };
+
+  async function dispatch(confirm) {
+    const out = $("run-result");
+    out.className = "result";
+    out.textContent = "";
+
+    const action = $("run-action").value;
+    if (!action) {
+      showModal("No action", "Choose an action first, then submit again.");
+      return;
+    }
+    const sel = $("run-targets").value;
+    const custom = $("run-robots").value.split(",").map((s) => s.trim()).filter(Boolean);
+    let targets;
+    if (sel === "all") targets = { all: null };
+    else if (sel.startsWith("type:")) targets = { types: [sel.slice(5)] };
+    else if (sel.startsWith("robot:")) targets = { robots: [sel.slice(6)] };
+    else targets = { robots: custom };
+    const payload = {
+      action,
+      targets,
+      confirm,
+    };
+    const timeout = parseInt($("run-timeout").value, 10);
+    if (timeout > 0) payload.timeout_sec = timeout;
+
+    const btn = $("run-submit");
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+    try {
+      const resp = await fetchJson("/api/run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      out.className = "result ok";
+      out.textContent =
+        `run ${resp.run_id}\n→ ${resp.targeted.join(", ") || "none"}\n` +
+        (resp.busy.length ? `busy: ${resp.busy.join(", ")}\n` : "") +
+        (resp.offline.length ? `offline: ${resp.offline.join(", ")}` : "");
+    } catch (e) {
+      const text = String(e.message || e);
+      out.className = "result bad";
+      out.textContent = text;
+      if (text.includes("confirm with confirm=true")) {
+        // The host only asks when the action is flagged dangerous and targets
+        // more than one robot. Confirm via the modal, then resubmit.
+        showModal(
+          "Confirmation required",
+          "This action is flagged dangerous and targets multiple robots.\nRun it anyway?",
+          () => dispatch(true)
+        );
+      } else {
+        showModal("Dispatch failed", text);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Run";
+    }
+  }
+}
+
+function showModal(title, text, onOk) {
+  $("modal-title").textContent = title;
+  $("modal-text").textContent = text;
+  $("modal").classList.remove("hidden");
+  state.modalOk = onOk || null;
+  $("modal-close").focus();
+}
+
+function bindModal() {
+  $("modal-close").onclick = () => {
+    $("modal").classList.add("hidden");
+    const cb = state.modalOk;
+    state.modalOk = null;
+    if (cb) cb();
+  };
+  $("modal").onclick = (e) => {
+    if (e.target === $("modal")) {
+      $("modal").classList.add("hidden");
+      state.modalOk = null;
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Logs
+// ---------------------------------------------------------------------------
+function selectRobot(id) {
+  state.selectedRobot = id;
+  updateLogHeader();
+  loadLogs();
+  renderRobots();
+}
+
+function updateLogHeader() {
+  $("log-robot").textContent = state.selectedRobot ? `— ${state.selectedRobot}` : "";
+}
+
+async function loadLogs() {
+  const view = $("log-view");
+  view.innerHTML = "";
+  if (!state.selectedRobot) return;
+  try {
+    const lines = await fetchJson(`/api/robots/${encodeURIComponent(state.selectedRobot)}/logs?tail=200`);
+    appendLogs(lines);
+  } catch (e) {
+    view.innerHTML = `<div class="line stderr">failed to load logs: ${escapeHtml(String(e))}</div>`;
+  }
+}
+
+function appendLogs(lines) {
+  const view = $("log-view");
+  const wasBottom = !state.follow || Math.abs(view.scrollHeight - view.scrollTop - view.clientHeight) < 30;
+  for (const l of lines) {
+    const div = document.createElement("div");
+    div.className = "line" + (l.stderr ? " stderr" : "");
+    const ts = new Date(l.ts_ms);
+    const pad = (n) => String(n).padStart(2, "0");
+    div.innerHTML =
+      `<span class="ts">${pad(ts.getHours())}:${pad(ts.getMinutes())}:${pad(ts.getSeconds())}</span>` +
+      escapeHtml(l.text);
+    view.appendChild(div);
+  }
+  if (wasBottom) view.scrollTop = view.scrollHeight;
+}
+
+function bindLogFollow() {
+  const btn = $("log-follow");
+  btn.onclick = () => {
+    state.follow = !state.follow;
+    btn.textContent = state.follow ? "following…" : "not following";
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+init();
