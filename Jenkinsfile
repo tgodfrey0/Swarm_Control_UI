@@ -9,7 +9,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                githubNotify(context: 'Jenkins', description: 'Build started', status: 'PENDING')
                 checkout scm
             }
         }
@@ -95,13 +94,6 @@ pipeline {
     post {
         success {
             archiveArtifacts artifacts: 'target/release/swarmdeck-host, target/release/swarmdeck-agent, target/release/swarmdeck-cli, target/aarch64-unknown-linux-musl/release/swarmdeck-agent, target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent, target/x86_64-unknown-linux-musl/release/swarmdeck-agent', fingerprint: true
-            githubNotify(context: 'Jenkins', description: 'Build succeeded', status: 'SUCCESS')
-        }
-        failure {
-            githubNotify(context: 'Jenkins', description: 'Build failed', status: 'FAILURE')
-        }
-        unstable {
-            githubNotify(context: 'Jenkins', description: 'Build unstable', status: 'FAILURE')
         }
         always {
             cleanWs()
