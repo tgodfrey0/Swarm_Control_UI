@@ -2,23 +2,22 @@ pipeline {
     agent any
 
     environment {
-        CARGO_HOME = "${WORKSPACE}/.cargo"
-        RUSTUP_HOME = "${WORKSPACE}/.rustup"
-        PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:${env.PATH}"
+        PIXI_HOME = "${WORKSPACE}/.pixi"
+        PATH = "${WORKSPACE}/.pixi/bin:${env.PATH}"
     }
 
     stages {
         stage('Checkout') {
             steps {
+                githubNotify(context: 'Jenkins', description: 'Build started', status: 'PENDING')
                 checkout scm
             }
         }
 
         stage('Setup') {
             steps {
-                sh 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable'
-                sh 'rustup target add aarch64-unknown-linux-musl armv7-unknown-linux-musleabihf x86_64-unknown-linux-musl'
-                sh 'rustup component add clippy rustfmt'
+                sh 'curl -fsSL https://pixi.sh/install.sh | bash'
+                sh 'pixi install'
             }
         }
 
@@ -26,12 +25,12 @@ pipeline {
             parallel {
                 stage('Format') {
                     steps {
-                        sh 'cargo fmt --all -- --check'
+                        sh 'pixi run fmt && git diff --exit-code'
                     }
                 }
                 stage('Clippy') {
                     steps {
-                        sh 'cargo clippy --workspace --all-targets -- -D warnings'
+                        sh 'pixi run lint'
                     }
                 }
             }
@@ -41,12 +40,12 @@ pipeline {
             parallel {
                 stage('Rust Tests') {
                     steps {
-                        sh 'cargo test --workspace'
+                        sh 'pixi run test-rust'
                     }
                 }
                 stage('WebUI Contract Test') {
                     steps {
-                        sh 'node ui/test/contract.test.js'
+                        sh 'pixi run test-webui'
                     }
                 }
             }
@@ -76,17 +75,17 @@ pipeline {
             parallel {
                 stage('Agent aarch64') {
                     steps {
-                        sh 'cargo zigbuild -p swarmdeck-agent --release --target aarch64-unknown-linux-musl'
+                        sh 'pixi run agent-aarch64'
                     }
                 }
                 stage('Agent armv7') {
                     steps {
-                        sh 'cargo zigbuild -p swarmdeck-agent --release --target armv7-unknown-linux-musleabihf'
+                        sh 'pixi run agent-armv7'
                     }
                 }
                 stage('Agent x86_64') {
                     steps {
-                        sh 'cargo zigbuild -p swarmdeck-agent --release --target x86_64-unknown-linux-musl'
+                        sh 'pixi run agent-x86_64'
                     }
                 }
             }
@@ -96,6 +95,13 @@ pipeline {
     post {
         success {
             archiveArtifacts artifacts: 'target/release/swarmdeck-host, target/release/swarmdeck-agent, target/release/swarmdeck-cli, target/aarch64-unknown-linux-musl/release/swarmdeck-agent, target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent, target/x86_64-unknown-linux-musl/release/swarmdeck-agent', fingerprint: true
+            githubNotify(context: 'Jenkins', description: 'Build succeeded', status: 'SUCCESS')
+        }
+        failure {
+            githubNotify(context: 'Jenkins', description: 'Build failed', status: 'FAILURE')
+        }
+        unstable {
+            githubNotify(context: 'Jenkins', description: 'Build unstable', status: 'FAILURE')
         }
         always {
             cleanWs()
