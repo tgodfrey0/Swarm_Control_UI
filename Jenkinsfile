@@ -45,7 +45,8 @@ pipeline {
             parallel {
                 stage('Rust Tests') {
                     steps {
-                        sh 'pixi run test-rust'
+                        sh 'bash scripts/test2junit.sh > test-results.xml'
+                        junit 'test-results.xml'
                     }
                 }
                 stage('WebUI Contract Test') {
@@ -99,7 +100,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'target/release/swarmdeck-host, target/release/swarmdeck-agent, target/release/swarmdeck-cli, target/aarch64-unknown-linux-musl/release/swarmdeck-agent, target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent, target/x86_64-unknown-linux-musl/release/swarmdeck-agent', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'test-results.xml, target/release/swarmdeck-host, target/release/swarmdeck-agent, target/release/swarmdeck-cli, target/aarch64-unknown-linux-musl/release/swarmdeck-agent, target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent, target/x86_64-unknown-linux-musl/release/swarmdeck-agent', fingerprint: true, allowEmptyArchive: true
             cleanWs()
         }
     }
