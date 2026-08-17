@@ -5,7 +5,7 @@ pipeline {
         PIXI_HOME = "${WORKSPACE}/.pixi"
         CARGO_HOME = "${WORKSPACE}/.cargo"
         RUSTUP_HOME = "${WORKSPACE}/.rustup"
-        PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/.pixi/bin:${env.PATH}"
+        PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/.pixi/bin:${WORKSPACE}/node/bin:${env.PATH}"
         PROTOC = "${WORKSPACE}/protoc/bin/protoc"
     }
 
@@ -21,7 +21,7 @@ pipeline {
                 sh 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable'
                 sh 'curl -fsSL https://pixi.sh/install.sh | bash'
                 sh 'curl -fsSL https://github.com/protocolbuffers/protobuf/releases/download/v28.3/protoc-28.3-linux-x86_64.zip -o /tmp/protoc.zip && unzip -o /tmp/protoc.zip -d ${WORKSPACE}/protoc && chmod +x ${WORKSPACE}/protoc/bin/protoc'
-                sh 'curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -y nodejs || (curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && export NVM_DIR="${HOME}/.nvm" && . "$NVM_DIR/nvm.sh" && nvm install 22)'
+                sh 'mkdir -p ${WORKSPACE}/node && curl -fsSL https://nodejs.org/dist/v22.18.0/node-v22.18.0-linux-x64.tar.xz | tar -xJ -C ${WORKSPACE}/node --strip-components=1'
                 sh 'pixi install'
             }
         }
