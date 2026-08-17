@@ -3,7 +3,9 @@ pipeline {
 
     environment {
         PIXI_HOME = "${WORKSPACE}/.pixi"
-        PATH = "${WORKSPACE}/.pixi/bin:${env.PATH}"
+        CARGO_HOME = "${WORKSPACE}/.cargo"
+        RUSTUP_HOME = "${WORKSPACE}/.rustup"
+        PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/.pixi/bin:${env.PATH}"
     }
 
     stages {
@@ -15,6 +17,7 @@ pipeline {
 
         stage('Setup') {
             steps {
+                sh 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable'
                 sh 'curl -fsSL https://pixi.sh/install.sh | bash'
                 sh 'pixi install'
             }
