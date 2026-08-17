@@ -4,7 +4,7 @@
 set -euo pipefail
 
 TMPFILE=$(mktemp)
-cargo test --workspace 2>&1 | tee "$TMPFILE"
+cargo test --workspace 2>&1 | tee "$TMPFILE" >&2
 
 python3 -c "
 import re, sys, xml.etree.ElementTree as ET
