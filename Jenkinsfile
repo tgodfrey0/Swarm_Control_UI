@@ -6,6 +6,7 @@ pipeline {
         CARGO_HOME = "${WORKSPACE}/.cargo"
         RUSTUP_HOME = "${WORKSPACE}/.rustup"
         PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/.pixi/bin:${env.PATH}"
+        PROTOC = "${WORKSPACE}/protoc/bin/protoc"
     }
 
     stages {
@@ -19,8 +20,8 @@ pipeline {
             steps {
                 sh 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable'
                 sh 'curl -fsSL https://pixi.sh/install.sh | bash'
+                sh 'curl -fsSL https://github.com/protocolbuffers/protobuf/releases/download/v28.3/protoc-28.3-linux-x86_64.zip -o /tmp/protoc.zip && unzip -o /tmp/protoc.zip -d ${WORKSPACE}/protoc && chmod +x ${WORKSPACE}/protoc/bin/protoc'
                 sh 'pixi install'
-                sh 'echo "export PROTOC=$(pixi run which protoc | tr -d[:space:])" >> ${WORKSPACE}/.cargo/env'
             }
         }
 
@@ -28,12 +29,12 @@ pipeline {
             parallel {
                 stage('Format') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && pixi run fmt && git diff --exit-code'
+                        sh 'pixi run fmt && git diff --exit-code'
                     }
                 }
                 stage('Clippy') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && pixi run lint'
+                        sh 'pixi run lint'
                     }
                 }
             }
@@ -43,7 +44,7 @@ pipeline {
             parallel {
                 stage('Rust Tests') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && pixi run test-rust'
+                        sh 'pixi run test-rust'
                     }
                 }
                 stage('WebUI Contract Test') {
@@ -58,17 +59,17 @@ pipeline {
             parallel {
                 stage('Build Host') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && cargo build --release -p swarmdeck-host'
+                        sh 'cargo build --release -p swarmdeck-host'
                     }
                 }
                 stage('Build Agent') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && cargo build --release -p swarmdeck-agent'
+                        sh 'cargo build --release -p swarmdeck-agent'
                     }
                 }
                 stage('Build CLI') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && cargo build --release -p swarmdeck-cli'
+                        sh 'cargo build --release -p swarmdeck-cli'
                     }
                 }
             }
@@ -78,17 +79,17 @@ pipeline {
             parallel {
                 stage('Agent aarch64') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && pixi run agent-aarch64'
+                        sh 'pixi run agent-aarch64'
                     }
                 }
                 stage('Agent armv7') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && pixi run agent-armv7'
+                        sh 'pixi run agent-armv7'
                     }
                 }
                 stage('Agent x86_64') {
                     steps {
-                        sh '. ${WORKSPACE}/.cargo/env && pixi run agent-x86_64'
+                        sh 'pixi run agent-x86_64'
                     }
                 }
             }
