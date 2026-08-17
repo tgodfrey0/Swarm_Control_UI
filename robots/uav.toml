@@ -4,25 +4,12 @@
 display_name = "UAV"
 
 [robot_types.uav.actions.arm]
-command = "python3 /opt/swarm/arm.py --mav-id {{vars.mav_id}} --set 1"
+command = "echo TODO"
 timeout_sec = 60
 dangerous = true
 
 [robot_types.uav.actions.disarm]
-command = "python3 /opt/swarm/arm.py --mav-id {{vars.mav_id}} --set 0"
+command = "echo TODO"
 timeout_sec = 60
 dangerous = true
 
-[robot_types.uav.actions.takeoff]
-command = "python3 /opt/swarm/takeoff.py --mav-id {{vars.mav_id}} --alt {{vars.alt_m}}"
-timeout_sec = 120
-dangerous = true
-
-[robot_types.uav.actions.controller]
-command = "ros2 run uav_ctrl px4_controller --sysid {{vars.mav_id}}"
-timeout_sec = 0
-background = true
-
-[robot_types.uav.actions.battery_status]
-command = "python3 /opt/swarm/battery.py --mav-id {{vars.mav_id}}"
-timeout_sec = 30

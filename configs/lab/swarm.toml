@@ -10,11 +10,6 @@ id_code = "lab1-swarm-secret"
 grpc_listen = "0.0.0.0:50051"
 ui_bind = "0.0.0.0:8080"
 
-# [controller.tls]
-# cert = "certs/host.crt"
-# key  = "certs/host.key"
-# ca   = "certs/ca.crt"
-
 # Swarm-level actions: dispatched by bare name to any robot, regardless of
 # type. Generic bringup/teardown commands live per-robot-type instead.
 [actions.start_trial]
