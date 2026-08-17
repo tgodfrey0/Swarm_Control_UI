@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-readme.png" alt="SwarmDeck" width="320">
+  <img src="https://raw.githubusercontent.com/tgodfrey0/Swarm_Control_UI/main/assets/logo-readme.svg" alt="SwarmDeck" width="320">
 </p>
 
 <p align="center">
