@@ -172,6 +172,10 @@ pub struct ActionConfig {
     /// The default (1) prevents launching competing controllers on one robot.
     #[serde(default = "default_concurrency")]
     pub concurrency: usize,
+    /// Background actions don't count as "active" — another action can be
+    /// dispatched while this one runs (e.g. a bringup that must stay up).
+    #[serde(default)]
+    pub background: bool,
 }
 
 fn default_concurrency() -> usize {

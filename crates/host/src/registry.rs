@@ -65,6 +65,9 @@ pub struct RobotEntry {
     pub agent_version: String,
     pub hostname: Option<String>,
     pub active_action_id: Option<String>,
+    /// Background actions: action_id -> action_name. These don't count as
+    /// "active" for concurrency but must be stoppable.
+    pub background_actions: BTreeMap<String, String>,
     pub cmd_tx: Option<UnboundedSender<swarmdeck_proto::v1::Command>>,
     cmd_tx_seq: u64,
     pub logs: LogRing,
@@ -85,6 +88,7 @@ impl RobotEntry {
             agent_version: String::new(),
             hostname: None,
             active_action_id: None,
+            background_actions: BTreeMap::new(),
             cmd_tx: None,
             cmd_tx_seq: 0,
             logs: LogRing::new(LOG_RING_MAX),
@@ -277,6 +281,7 @@ impl Registry {
                         if entry.active_action_id.as_deref() == Some(res.action_id.as_str()) {
                             entry.active_action_id = None;
                         }
+                        entry.background_actions.remove(&res.action_id);
                     }
                 }
                 self.actions_meta.write().await.remove(&res.action_id);
@@ -343,6 +348,7 @@ impl Registry {
                 entry.connected = false;
                 entry.last_seen_ms = 0;
                 entry.active_action_id = None;
+                entry.background_actions.clear();
                 entry.cmd_tx = None;
             }
         }
@@ -384,6 +390,31 @@ impl Registry {
             let mut robots = self.robots.write().await;
             if let Some(entry) = robots.get_mut(robot_id) {
                 entry.active_action_id = Some(action_id.clone());
+            }
+        }
+        self.actions_meta.write().await.insert(
+            action_id,
+            ActionMeta {
+                action_name,
+                command: String::new(),
+            },
+        );
+        self.publish_robot(robot_id).await;
+    }
+
+    /// Record a background action on a robot (doesn't block other dispatches).
+    pub async fn mark_background_action(
+        &self,
+        robot_id: &str,
+        action_id: String,
+        action_name: String,
+    ) {
+        {
+            let mut robots = self.robots.write().await;
+            if let Some(entry) = robots.get_mut(robot_id) {
+                entry
+                    .background_actions
+                    .insert(action_id.clone(), action_name.clone());
             }
         }
         self.actions_meta.write().await.insert(

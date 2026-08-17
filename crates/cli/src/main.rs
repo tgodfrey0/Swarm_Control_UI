@@ -39,6 +39,9 @@ enum Command {
         yes: bool,
         #[arg(long)]
         json: bool,
+        /// Run as a background action (doesn't block other dispatches on the robot).
+        #[arg(long)]
+        background: bool,
     },
     /// Stop every running action on the targeted robots.
     Stop {
@@ -115,6 +118,7 @@ async fn main() -> anyhow::Result<()> {
             name,
             yes,
             json,
+            background,
         } => {
             cmd_run(
                 &client,
@@ -122,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
                 target(all, robots, types, name)?,
                 yes,
                 json,
+                background,
             )
             .await?
         }
@@ -246,12 +251,14 @@ async fn cmd_run(
     targets: ApiTargets,
     yes: bool,
     json: bool,
+    background: bool,
 ) -> anyhow::Result<()> {
     let req = swarmdeck_core::RunRequest {
         action: action.clone(),
         targets,
         timeout_sec: None,
         confirm: false,
+        background,
     };
     let resp = match client.dispatch(&req).await {
         Ok(resp) => resp,

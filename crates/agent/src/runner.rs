@@ -41,6 +41,7 @@ struct RunningEntry {
     pid: u32,
     killed: Arc<AtomicBool>,
     kill_on_disconnect: bool,
+    background: bool,
     started_ms: u64,
 }
 
@@ -112,6 +113,7 @@ impl Runner {
                 pid,
                 killed: killed.clone(),
                 kill_on_disconnect: run.kill_on_disconnect,
+                background: run.background,
                 started_ms,
             },
         );
@@ -257,7 +259,7 @@ impl Runner {
         let running = self.inner.running.lock().await;
         running
             .iter()
-            .next()
+            .find(|(_, e)| !e.background)
             .map(|(id, e)| (id.clone(), e.started_ms))
     }
 }

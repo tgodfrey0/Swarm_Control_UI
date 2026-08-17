@@ -27,6 +27,9 @@ pub struct RunRequest {
     /// `dangerous` actions targeting more than one robot).
     #[serde(default)]
     pub confirm: bool,
+    /// Run as a background action (doesn't block other dispatches on the robot).
+    #[serde(default)]
+    pub background: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -126,13 +126,15 @@ impl Dispatcher {
             robots: BTreeMap::new(),
         };
 
+        let background = req.background || resolved.action.background;
+
         for robot in &resolved.robots {
             let view = self.registry.view(&robot.id).await;
             if !view.connected {
                 offline.push(robot.id.clone());
                 continue;
             }
-            if view.active.is_some() {
+            if !background && view.active.is_some() {
                 busy.push(robot.id.clone());
                 continue;
             }
@@ -159,20 +161,31 @@ impl Dispatcher {
                     cwd: spec.cwd.unwrap_or_default(),
                     timeout_sec: spec.timeout_sec.unwrap_or(0) as u32,
                     kill_on_disconnect: true,
+                    background,
                 })),
             };
 
             match self.registry.cmd_tx(&robot.id).await {
                 Some(tx) if tx.send(run_cmd).is_ok() => {
-                    // Re-check concurrency after the send: the action may be
-                    // running by the time a second dispatch arrives.
-                    self.registry
-                        .mark_action_started(
-                            &robot.id,
-                            action_id.clone(),
-                            resolved.action_name.clone(),
-                        )
-                        .await;
+                    // Background actions don't count as "active" — another
+                    // action can run concurrently on the same robot.
+                    if background {
+                        self.registry
+                            .mark_background_action(
+                                &robot.id,
+                                action_id.clone(),
+                                resolved.action_name.clone(),
+                            )
+                            .await;
+                    } else {
+                        self.registry
+                            .mark_action_started(
+                                &robot.id,
+                                action_id.clone(),
+                                resolved.action_name.clone(),
+                            )
+                            .await;
+                    }
                     group.robots.insert(
                         robot.id.clone(),
                         RunRobotStatus::Running {
@@ -233,6 +246,31 @@ impl Dispatcher {
                     .unwrap_or(false)
                 {
                     stopped.push(robot.id.clone());
+                }
+            } else {
+                // Check for background actions on this robot.
+                let bg_ids: Vec<String> = {
+                    let robots = self.registry.robots.read().await;
+                    robots
+                        .get(&robot.id)
+                        .map(|e| e.background_actions.keys().cloned().collect())
+                        .unwrap_or_default()
+                };
+                for action_id in bg_ids {
+                    let cmd = Command {
+                        command: Some(CommandMsg::Stop(StopAction {
+                            action_id: action_id.clone(),
+                        })),
+                    };
+                    if self
+                        .registry
+                        .cmd_tx(&robot.id)
+                        .await
+                        .map(|t| t.send(cmd).is_ok())
+                        .unwrap_or(false)
+                    {
+                        stopped.push(robot.id.clone());
+                    }
                 }
             }
         }

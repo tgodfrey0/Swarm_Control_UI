@@ -74,6 +74,7 @@ fn run_request_uses_camel_free_snake_keys() {
         targets: ApiTargets::All,
         timeout_sec: Some(10),
         confirm: false,
+        background: false,
     });
     assert_eq!(v["action"], json!("sim.echo"));
     assert_eq!(v["timeout_sec"], json!(10));

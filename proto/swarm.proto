@@ -94,6 +94,10 @@ message RunAction {
   uint32 timeout_sec = 6;
   // If true, the agent terminates the action when the connection drops.
   bool kill_on_disconnect = 7;
+  // Background actions don't count as "active" on the robot — another action
+  // can be dispatched while this one runs (e.g. a bringup launch that must
+  // stay up while swarm tasks are dispatched).
+  bool background = 8;
 }
 
 message StopAction {

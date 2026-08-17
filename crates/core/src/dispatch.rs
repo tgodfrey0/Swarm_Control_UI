@@ -132,6 +132,7 @@ mod tests {
                                 cwd: None,
                                 dangerous: false,
                                 concurrency: 1,
+                                background: false,
                             },
                         )]),
                     },
@@ -153,6 +154,7 @@ mod tests {
                     cwd: None,
                     dangerous: true,
                     concurrency: 1,
+                    background: false,
                 },
             )]),
             robots: vec![
