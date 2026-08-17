@@ -122,9 +122,16 @@ async fn list_types(State(state): State<AppState>) -> Json<Vec<String>> {
 
 async fn list_actions(State(state): State<AppState>) -> Json<ActionsView> {
     let cfg = state.registry.config.read().await;
+    let active_types: std::collections::HashSet<&str> = cfg
+        .robots
+        .iter()
+        .map(|r| r.kind.as_str())
+        .filter(|k| !k.is_empty())
+        .collect();
     let mut robot_type: Vec<String> = cfg
         .robot_types
         .iter()
+        .filter(|(ty, _)| active_types.contains(ty.as_str()))
         .flat_map(|(ty, t)| t.actions.keys().map(move |a| format!("{ty}.{a}")))
         .collect();
     robot_type.sort();
