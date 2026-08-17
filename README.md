@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="SwarmDeck" width="320">
+  <img src="assets/logo-readme.svg" alt="SwarmDeck" width="320">
 </p>
 
 <p align="center">
