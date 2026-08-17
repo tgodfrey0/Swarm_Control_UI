@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="https://jenkins.tgodfrey.com/job/SwarmDeck/"><img src="https://img.shields.io/jenkins/build?jobUrl=https%3A%2F%2Fjenkins.tgodfrey.com%2Fjob%2FSwarmDeck&label=build" alt="Build Status"></a>
-  <a href="https://jenkins.tgodfrey.com/job/SwarmDeck/"><img src="https://img.shields.io/jenkins/tests?jobUrl=https%3A%2F%2Fjenkins.tgodfrey.com%2Fjob%2FSwarmDeck&label=tests" alt="Test Status"></a>
+  <a href="https://jenkins.tgodfrey.com/job/SwarmControlUI/"><img src="https://img.shields.io/jenkins/build?jobUrl=https%3A%2F%2Fjenkins.tgodfrey.com%2Fjob%2FSwarmControlUI&label=build" alt="Build Status"></a>
+  <a href="https://jenkins.tgodfrey.com/job/SwarmControlUI/"><img src="https://img.shields.io/jenkins/tests?jobUrl=https%3A%2F%2Fjenkins.tgodfrey.com%2Fjob%2FSwarmControlUI&label=tests" alt="Test Status"></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT">
   <img src="https://img.shields.io/badge/rust-1.85%2B-orange" alt="MSRV 1.85">
 </p>
