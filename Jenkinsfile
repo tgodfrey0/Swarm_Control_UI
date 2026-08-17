@@ -4,16 +4,13 @@ pipeline {
     environment {
         CARGO_HOME = "${WORKSPACE}/.cargo"
         RUSTUP_HOME = "${WORKSPACE}/.rustup"
-        RUSTUP_INIT_ROOT = "${WORKSPACE}/.rustup"
-    }
-
-    tools {
-        rustup 'rust-stable'
+        PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:${env.PATH}"
     }
 
     stages {
         stage('Setup') {
             steps {
+                sh 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable'
                 sh 'rustup target add aarch64-unknown-linux-musl armv7-unknown-linux-musleabihf x86_64-unknown-linux-musl'
                 sh 'rustup component add clippy rustfmt'
             }
