@@ -11,7 +11,7 @@
 [controller]
 name = "sim-1"
 id_code = "sim-swarm-secret"
-grpc_listen = "127.0.0.1:50152"
+grpc_listen = "127.0.0.1:50051"
 ui_bind = "127.0.0.1:18082"
 
 # Swarm-level action example: fanned out to every robot by bare name.

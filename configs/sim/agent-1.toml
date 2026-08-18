@@ -2,5 +2,5 @@
 robot_id = "sim-01"
 
 [controller]
-endpoint = "127.0.0.1:50152"
+endpoint = "127.0.0.1"
 id_code  = "sim-swarm-secret"
