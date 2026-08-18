@@ -230,10 +230,18 @@ pub struct AgentConfig {
     pub env: BTreeMap<String, String>,
 }
 
+const DEFAULT_GRPC_PORT: &str = "50051";
+
 impl AgentConfig {
     pub fn from_toml_path(path: &Path) -> Result<Self> {
         let text = std::fs::read_to_string(path)?;
-        toml::from_str(&text).map_err(ConfigError::Toml)
+        let mut cfg: AgentConfig = toml::from_str(&text).map_err(ConfigError::Toml)?;
+        if !cfg.controller.endpoint.contains(':') {
+            cfg.controller
+                .endpoint
+                .push_str(&format!(":{DEFAULT_GRPC_PORT}"));
+        }
+        Ok(cfg)
     }
 }
 
