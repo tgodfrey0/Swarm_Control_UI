@@ -50,6 +50,89 @@ pixi run agent-sim -- --config configs/sim/agent-2.toml
 | Security | [wiki/Security](../../wiki/Security) |
 | Development | [wiki/Development](../../wiki/Development) |
 
+## Deploying the Agent
+
+### Prerequisites
+
+1. **Cross-compile** the agent for your target (see [Cross-Compilation](../../wiki/Cross-Compilation)):
+   ```sh
+   pixi run agent-aarch64    # Raspberry Pi / Jetson (64-bit)
+   pixi run agent-armv7      # Raspberry Pi OS (32-bit)
+   pixi run agent-x86_64     # x86_64 SBCs
+   ```
+
+2. Build the release binary:
+   ```sh
+   cargo build --release -p swarmdeck-agent
+   ```
+
+### Automatic Provisioning (SSH)
+
+The CLI provisions robots over SSH — copies the binary, writes the config, and installs the systemd unit:
+
+```sh
+pixi run provision                          # all robots in configs/lab
+pixi run provision -- --robots tb-01 tb-02  # specific robots only
+pixi run provision -- --user pi             # non-root SSH user
+```
+
+Environment variables:
+- `SWARMDECK_CONTROLLER_ENDPOINT` — override the agent-to-host endpoint (e.g. `100.64.0.1:50051`)
+- `SWARMDECK_AGENT_BIN` — path to the cross-compiled binary (default: `target/aarch64-unknown-linux-musl/release/swarmdeck-agent`)
+
+### Manual Install
+
+On the robot, run the install script:
+
+```sh
+./deploy/install-agent.sh                           # auto-detect binary + default config
+./deploy/install-agent.sh --bin /path/to/swarmdeck-agent  # explicit binary
+```
+
+This installs:
+- Binary → `/opt/swarm-agent/swarmdeck-agent`
+- Config → `/etc/swarm-agent/agent.toml` (creates a placeholder if missing — **edit it**)
+- Service → `/etc/systemd/system/swarmdeck-agent.service`
+
+### systemd Commands
+
+```sh
+# Edit the config
+sudo nano /etc/swarm-agent/agent.toml
+
+# Start / stop / restart
+sudo systemctl start swarmdeck-agent
+sudo systemctl stop swarmdeck-agent
+sudo systemctl restart swarmdeck-agent
+
+# Enable on boot
+sudo systemctl enable swarmdeck-agent
+
+# View live logs (journal)
+journalctl -u swarmdeck-agent -f
+
+# View log files on disk
+ls /opt/swarm-agent/logs/
+```
+
+### Agent Config Format
+
+`/etc/swarm-agent/agent.toml`:
+
+```toml
+robot_id = "tb-01"
+
+[controller]
+endpoint = "10.0.0.1:50051"
+id_code  = "lab1-swarm-secret"
+```
+
+### Logs
+
+By default the agent logs to:
+- **stdout** — captured by systemd (`journalctl -u swarmdeck-agent`)
+- **`logs/` directory** — rotated daily as `{config-name}-{YYYYMMDD-HHMMSS}.log` in the service's working directory (`/opt/swarm-agent/logs/`)
+
 ## Components
 
 | Crate | Description |

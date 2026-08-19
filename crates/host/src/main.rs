@@ -4,11 +4,13 @@ mod grpc;
 mod http;
 mod registry;
 
-use std::path::PathBuf;
+use std::io;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use swarmdeck_core::SwarmConfig;
-use tracing_subscriber::EnvFilter;
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{fmt::writer::Tee, EnvFilter};
 
 use dispatch::Dispatcher;
 use http::AppState;
@@ -28,17 +30,34 @@ struct Args {
     robot_types: PathBuf,
 }
 
+fn setup_logging(name: &str) -> WorkerGuard {
+    let filter = EnvFilter::from_default_env();
+    std::fs::create_dir_all("logs").ok();
+
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let log_path = Path::new("logs").join(format!("{name}-{ts}.log"));
+
+    let file_appender = tracing_appender::rolling::never("logs", log_path.file_name().unwrap());
+    let (file_non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+    let (stdout_non_blocking, _) = tracing_appender::non_blocking(io::stdout());
+
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(Tee::new(file_non_blocking, stdout_non_blocking))
+        .with_ansi(false)
+        .init();
+    guard
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
-
     let args = Args::parse();
 
     let swarm_file = args.config.unwrap_or_else(|| args.swarm.join("swarm.toml"));
     let types_dir = Some(args.robot_types);
     let cfg = SwarmConfig::from_files(&swarm_file, types_dir.as_deref())?;
+
+    let _guard = setup_logging(&cfg.controller.name);
 
     tracing::info!(
         controller = %cfg.controller.name,

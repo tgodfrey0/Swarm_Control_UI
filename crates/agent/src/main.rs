@@ -2,10 +2,12 @@ mod procfs;
 mod runner;
 mod session;
 
-use std::path::PathBuf;
+use std::io;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use tracing_subscriber::EnvFilter;
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{fmt::writer::Tee, EnvFilter};
 
 /// Path used when the agent is installed by the provisioner.
 const DEFAULT_CONFIG: &str = "/etc/swarm-agent/agent.toml";
@@ -18,14 +20,36 @@ struct Args {
     config: PathBuf,
 }
 
+fn setup_logging(name: &str) -> WorkerGuard {
+    let filter = EnvFilter::from_default_env();
+    std::fs::create_dir_all("logs").ok();
+
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let log_path = Path::new("logs").join(format!("{name}-{ts}.log"));
+
+    let file_appender = tracing_appender::rolling::never("logs", log_path.file_name().unwrap());
+    let (file_non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+    let (stdout_non_blocking, _) = tracing_appender::non_blocking(io::stdout());
+
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(Tee::new(file_non_blocking, stdout_non_blocking))
+        .with_ansi(false)
+        .init();
+    guard
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
-
     let args = Args::parse();
     let cfg = swarmdeck_core::AgentConfig::from_toml_path(&args.config)?;
+
+    let config_stem = args
+        .config
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("agent");
+    let _guard = setup_logging(config_stem);
 
     tracing::info!(
         robot_id = %cfg.robot_id,
