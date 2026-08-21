@@ -106,6 +106,8 @@ const TAGS = {
   "modal-title": "h3",
   "modal-text": "p",
   "modal-close": "button",
+  "modal-cancel": "button",
+  "theme-toggle": "button",
   "robots": "div",
   "runs": "div",
   "run-result": "div",
@@ -119,6 +121,13 @@ global.document = {
   getElementById: getEl,
   createElement: (t) => new El(t),
   title: "",
+};
+// The real app.js touches these (theme toggle); provide minimal stubs.
+global.document.documentElement = { dataset: {} };
+global.localStorage = {
+  _store: {},
+  getItem(k) { return this._store[k] ?? null; },
+  setItem(k, v) { this._store[k] = String(v); },
 };
 global.location = { protocol: "http:", host: "127.0.0.1:18082" };
 
@@ -150,6 +159,32 @@ const ROBOTS = [
     last_seen_ms: 0,
     active: null,
   },
+  {
+    id: "sim-9",
+    name: "sim-robot-9",
+    kind: "sim",
+    address: null,
+    simulated: true,
+    adopted: false,
+    connected: true,
+    agent_version: "0.1.0",
+    hostname: "uos-24rjd44",
+    last_seen_ms: 1,
+    active: null,
+  },
+  {
+    id: "sim-10",
+    name: "sim-robot-10",
+    kind: "sim",
+    address: null,
+    simulated: true,
+    adopted: false,
+    connected: true,
+    agent_version: "0.1.0",
+    hostname: "uos-24rjd44",
+    last_seen_ms: 1,
+    active: null,
+  },
 ];
 const ACTIONS = {
   robot_type: ["sim.echo", "sim.slow_echo", "turtlebot3.bringup"],
@@ -171,10 +206,11 @@ const RUNS = [
   },
 ];
 
+let lastRunPost = null;
 global.fetch = async (url, opts) => {
   if (opts && opts.method === "POST" && url === "/api/run") {
-    const body = JSON.parse(opts.body);
-    if (body.confirm !== true) {
+    lastRunPost = JSON.parse(opts.body);
+    if (lastRunPost.confirm !== true) {
       return {
         ok: false,
         status: 400,
@@ -259,11 +295,19 @@ setTimeout(() => {
     const targets = getEl("run-robot-opts").children.map((o) => o.value);
     assert(targets.includes("robot:sim-01"), "robot target present");
     assert(targets.includes("robot:sim-02"), "offline robot target present");
+    assert(targets.includes("robot:sim-10"), "two-digit robot target present");
     const types = getEl("run-type-opts").children.map((o) => o.value);
     assert(types.includes("type:sim"), "robot-type target present");
 
-    // Robot grid rendered (2 cards).
-    assertEq(getEl("robots").children.length, 2, "robot cards");
+    // Natural sort: sim-9 before sim-10 (lexicographic would put 10 first).
+    assertEq(
+      targets.join(","),
+      "robot:sim-01,robot:sim-02,robot:sim-9,robot:sim-10",
+      "natural sort of robot ids"
+    );
+
+    // Robot grid rendered (4 cards).
+    assertEq(getEl("robots").children.length, 4, "robot cards");
 
     // Runs rendered.
     assert(getEl("runs").children.length >= 1, "runs rendered");
@@ -284,7 +328,7 @@ setTimeout(() => {
         robot: { ...ROBOTS[0], connected: false },
       }),
     });
-    assertEq(getEl("robots").children.length, 2, "grid survives live delta");
+    assertEq(getEl("robots").children.length, 4, "grid survives live delta");
     assertEq(getEl("conn").textContent, "online", "conn still online");
 
     // Dangerous batch: first attempt (confirm:false) is rejected by the host
@@ -303,6 +347,17 @@ setTimeout(() => {
           getEl("modal-text").textContent.includes("dangerous"),
           "modal explains dangerous batch"
         );
+        // Confirmation mode: Proceed + visible Cancel, not a lone OK.
+        assertEq(getEl("modal-close").textContent, "Proceed", "confirm button says Proceed");
+        assert(!getEl("modal-cancel").hidden, "Cancel button shown for confirmation");
+        // "-- all robots --" must dispatch only to ONLINE robots: sim-02 was
+        // offline in the fixture and sim-01 flipped offline via the WS delta
+        // above, so neither may be targeted.
+        assertEq(
+          JSON.stringify(lastRunPost.targets),
+          JSON.stringify({ robots: ["sim-9", "sim-10"] }),
+          "'all' targets only online robots"
+        );
         getEl("modal-close").onclick();
         setTimeout(() => {
           try {
@@ -315,8 +370,9 @@ setTimeout(() => {
               getEl("run-result").textContent.includes("run run-r2"),
               "confirmed run dispatched"
             );
+            assertEq(lastRunPost.confirm, true, "resubmit carried confirm=true");
             console.log(
-              "PASS: webui contract test (actions, targets, render, WS, confirm)"
+              "PASS: webui contract test (actions, targets, render, WS, online-only all, confirm)"
             );
             process.exit(0);
           } catch (e) {

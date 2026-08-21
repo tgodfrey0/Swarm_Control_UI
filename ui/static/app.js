@@ -33,6 +33,7 @@ async function init() {
   bindRunForm();
   bindModal();
   bindLogFollow();
+  bindThemeToggle();
   connectWs();
 }
 
@@ -75,7 +76,7 @@ async function fetchConfig() {
 function renderRobots() {
   const grid = $("robots");
   grid.innerHTML = "";
-  const robots = [...state.robots.values()].sort((a, b) => a.id.localeCompare(b.id));
+  const robots = [...state.robots.values()].sort((a, b) => naturalCompare(a.id, b.id));
   if (robots.length === 0) {
     grid.innerHTML = '<p class="muted">No robots yet. Start an agent (or run <code>swarmdeck-cli sim</code>).</p>';
     return;
@@ -155,7 +156,7 @@ function populateTargetSelect() {
     opt.textContent = `all ${t}`;
     typeGroup.appendChild(opt);
   }
-  const robots = [...state.robots.values()].sort((a, b) => a.id.localeCompare(b.id));
+  const robots = [...state.robots.values()].sort((a, b) => naturalCompare(a.id, b.id));
   for (const r of robots) {
     const opt = document.createElement("option");
     opt.value = `robot:${r.id}`;
@@ -247,7 +248,17 @@ function bindRunForm() {
     const sel = $("run-targets").value;
     const custom = $("run-robots").value.split(",").map((s) => s.trim()).filter(Boolean);
     let targets;
-    if (sel === "all") targets = { all: null };
+    if (sel === "all") {
+      // The host resolves targets against the static config, so "all" would
+      // include offline robots. Send an explicit online-only list instead.
+      const online = [...state.robots.values()].filter((r) => r.connected).map((r) => r.id);
+      if (online.length === 0) {
+        out.className = "result bad";
+        out.textContent = "no robots are online";
+        return;
+      }
+      targets = { robots: online };
+    }
     else if (sel.startsWith("type:")) targets = { types: [sel.slice(5)] };
     else if (sel.startsWith("robot:")) targets = { robots: [sel.slice(6)] };
     else targets = { robots: custom };
@@ -298,21 +309,30 @@ function bindRunForm() {
 function showModal(title, text, onOk) {
   $("modal-title").textContent = title;
   $("modal-text").textContent = text;
+  // With a callback this is a confirmation: Cancel + Proceed. Without one it
+  // is a plain alert with a single OK.
+  $("modal-close").textContent = onOk ? "Proceed" : "OK";
+  $("modal-cancel").hidden = !onOk;
   $("modal").classList.remove("hidden");
   state.modalOk = onOk || null;
   $("modal-close").focus();
 }
 
 function bindModal() {
+  const hide = () => $("modal").classList.add("hidden");
   $("modal-close").onclick = () => {
-    $("modal").classList.add("hidden");
+    hide();
     const cb = state.modalOk;
     state.modalOk = null;
     if (cb) cb();
   };
+  $("modal-cancel").onclick = () => {
+    hide();
+    state.modalOk = null;
+  };
   $("modal").onclick = (e) => {
     if (e.target === $("modal")) {
-      $("modal").classList.add("hidden");
+      hide();
       state.modalOk = null;
     }
   };
@@ -369,8 +389,25 @@ function bindLogFollow() {
 }
 
 // ---------------------------------------------------------------------------
+// Theme
+// ---------------------------------------------------------------------------
+function bindThemeToggle() {
+  $("theme-toggle").onclick = () => {
+    const root = document.documentElement;
+    const next = root.dataset.theme === "light" ? "dark" : "light";
+    root.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch {}
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+function naturalCompare(a, b) {
+  // Numeric-aware ordering so ids sort as sim-1, sim-2, …, sim-10.
+  return a.localeCompare(b, undefined, { numeric: true });
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",

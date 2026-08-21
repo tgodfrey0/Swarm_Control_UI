@@ -223,9 +223,8 @@ impl RobotConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentConfig {
-    /// Robot identity. Optional in the TOML so a shared base config can omit
-    /// it and each agent passes `--robot-id` instead; the agent rejects an
-    /// empty id at startup.
+    /// Robot identity. Set in the per-agent TOML (a small file that `extends`
+    /// a shared base config); the agent rejects an empty id at startup.
     #[serde(default)]
     pub robot_id: String,
     pub controller: AgentControllerConfig,
@@ -246,6 +245,15 @@ impl AgentConfig {
                 .push_str(&format!(":{DEFAULT_GRPC_PORT}"));
         }
         Ok(cfg)
+    }
+
+    /// Reject an empty id (a base config may omit `robot_id`; the per-agent
+    /// file or the `--robot-id` flag must supply one before the agent runs).
+    pub fn validate(&self) -> Result<()> {
+        if self.robot_id.trim().is_empty() {
+            return Err(ConfigError::MissingRobotId);
+        }
+        Ok(())
     }
 
     /// Load a config file, following an optional `extends = "<file>"` chain
@@ -364,7 +372,9 @@ mod tests {
 
     #[test]
     fn missing_required_field_still_errors() {
-        let err = load(
+        // Loading succeeds (the CLI may still supply --robot-id), but the
+        // agent must refuse to run with an empty id.
+        let cfg = load(
             &[
                 (
                     "base.toml",
@@ -374,8 +384,22 @@ mod tests {
             ],
             "child.toml",
         )
-        .unwrap_err();
+        .unwrap();
+        let err = cfg.validate().unwrap_err();
         assert!(err.to_string().contains("robot_id"), "{err}");
+    }
+
+    #[test]
+    fn whitespace_only_robot_id_is_rejected() {
+        let cfg = load(
+            &[(
+                "solo.toml",
+                "robot_id = \"   \"\n[controller]\nendpoint = \"10.0.0.1\"\nid_code = \"s3cret\"\n",
+            )],
+            "solo.toml",
+        )
+        .unwrap();
+        assert!(cfg.validate().is_err());
     }
 
     #[test]

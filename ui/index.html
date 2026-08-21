@@ -6,6 +6,17 @@
   <title>SwarmDeck</title>
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
   <link rel="stylesheet" href="/static/styles.css">
+  <script>
+    // Apply the saved (or OS-preferred) theme before first paint to avoid a flash.
+    (function () {
+      var t = "dark";
+      try {
+        t = localStorage.getItem("theme") ||
+          (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      } catch (e) {}
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
 </head>
 <body>
   <header>
@@ -13,7 +24,13 @@
       <img class="logo" src="/static/logo.svg" alt="SwarmDeck">
       <h1>SwarmDeck <span class="controller" id="controller-name"></span></h1>
     </div>
-    <div id="conn" class="conn connecting">connecting…</div>
+    <div class="header-right">
+      <button id="theme-toggle" type="button" class="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <div id="conn" class="conn connecting">connecting…</div>
+    </div>
   </header>
 
   <main>
@@ -72,6 +89,7 @@
       <h3 id="modal-title">Error</h3>
       <p id="modal-text"></p>
       <button id="modal-close" type="button">OK</button>
+      <button id="modal-cancel" type="button" hidden>Cancel</button>
     </div>
   </div>
 </body>

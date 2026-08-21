@@ -60,7 +60,8 @@ fn api_targets_are_tagged_snake_case() {
         json!({ "name": "tb" })
     );
 
-    // The webui sends {"all": null} for the all-target; the host accepts it.
+    // The webui now sends an explicit online-only robot list for "all", but
+    // the host still accepts {"all": null} / "all" from the CLI and older UIs.
     let a: ApiTargets = serde_json::from_value(json!({ "all": null })).unwrap();
     assert!(matches!(a, ApiTargets::All));
     let a: ApiTargets = serde_json::from_value(json!("all")).unwrap();
