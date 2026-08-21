@@ -77,7 +77,7 @@ enum Command {
     /// Validate config files without starting anything.
     Config {
         /// Swarm config directory (contains {swarm}/swarm.toml).
-        #[arg(long, default_value = "configs/lab")]
+        #[arg(long)]
         swarm: PathBuf,
         #[arg(long)]
         config: Option<PathBuf>,
@@ -88,7 +88,7 @@ enum Command {
     /// SSH-provision the agent onto robots and install the systemd unit.
     Provision {
         /// Swarm config directory (contains {swarm}/swarm.toml).
-        #[arg(long, default_value = "configs/lab")]
+        #[arg(long)]
         swarm: PathBuf,
         #[arg(long)]
         config: Option<PathBuf>,

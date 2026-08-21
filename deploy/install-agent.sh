@@ -41,6 +41,7 @@ done
 # --- Resolve the binary ----------------------------------------------------
 if [[ -z "$BIN_PATH" ]]; then
     for candidate in \
+        "$REPO_ROOT/bin/swarmdeck-agent" \
         "$REPO_ROOT/target/release/swarmdeck-agent" \
         "$REPO_ROOT/target/debug/swarmdeck-agent"; do
         if [[ -x "$candidate" ]]; then
@@ -49,7 +50,7 @@ if [[ -z "$BIN_PATH" ]]; then
         fi
     done
     if [[ -z "$BIN_PATH" ]]; then
-        echo "error: no swarmdeck-agent binary found. Build first (cargo build --release) or pass --bin." >&2
+        echo "error: no swarmdeck-agent binary found. Build first (just build) or pass --bin." >&2
         exit 1
     fi
 fi

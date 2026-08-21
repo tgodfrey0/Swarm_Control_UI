@@ -20,7 +20,7 @@ use registry::Registry;
 #[command(name = "swarmdeck", about = "SwarmDeck control host")]
 struct Args {
     /// Swarm config directory (contains {swarm}/swarm.toml).
-    #[arg(long, default_value = "configs/lab")]
+    #[arg(long)]
     swarm: PathBuf,
     /// Override: swarm configuration (TOML) instead of {swarm}/swarm.toml.
     #[arg(long)]

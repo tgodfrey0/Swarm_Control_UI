@@ -36,6 +36,9 @@ pub enum ConfigError {
 
     #[error("action '{action}' targets {count} robots and is flagged dangerous; confirm with confirm=true")]
     ConfirmRequired { action: String, count: usize },
+
+    #[error("agent config `extends` cycle at '{path}'")]
+    ConfigCycle { path: String },
 }
 
 #[derive(Debug, Error)]

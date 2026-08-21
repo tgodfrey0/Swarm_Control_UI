@@ -234,14 +234,170 @@ const DEFAULT_GRPC_PORT: &str = "50051";
 
 impl AgentConfig {
     pub fn from_toml_path(path: &Path) -> Result<Self> {
-        let text = std::fs::read_to_string(path)?;
-        let mut cfg: AgentConfig = toml::from_str(&text).map_err(ConfigError::Toml)?;
+        let value = Self::load_merged(path, &mut Vec::new())?;
+        let mut cfg: AgentConfig = value.try_into().map_err(ConfigError::Toml)?;
         if !cfg.controller.endpoint.contains(':') {
             cfg.controller
                 .endpoint
                 .push_str(&format!(":{DEFAULT_GRPC_PORT}"));
         }
         Ok(cfg)
+    }
+
+    /// Load a config file, following an optional `extends = "<file>"` chain
+    /// (path relative to the referencing file). Tables are merged key-by-key,
+    /// so a per-agent file can override single fields (e.g. just `robot_id`)
+    /// while inheriting everything else from the generic config; scalars and
+    /// arrays are replaced wholesale.
+    fn load_merged(path: &Path, seen: &mut Vec<PathBuf>) -> Result<toml::Value> {
+        let canon = path.canonicalize()?;
+        if seen.contains(&canon) {
+            return Err(ConfigError::ConfigCycle {
+                path: canon.display().to_string(),
+            });
+        }
+        seen.push(canon);
+        let text = std::fs::read_to_string(path)?;
+        let mut value: toml::Value = toml::from_str(&text).map_err(ConfigError::Toml)?;
+        let extends = value
+            .as_table()
+            .and_then(|t| t.get("extends"))
+            .and_then(|v| v.as_str())
+            .map(str::to_owned);
+        if let Some(base) = extends {
+            value
+                .as_table_mut()
+                .expect("extends read from a table above")
+                .remove("extends");
+            let base_path = path.parent().unwrap_or(Path::new(".")).join(base);
+            let mut merged = Self::load_merged(&base_path, seen)?;
+            merge_toml(&mut merged, &value);
+            return Ok(merged);
+        }
+        Ok(value)
+    }
+}
+
+/// Deep-merge `over` into `base`: tables recursively, everything else replaced.
+fn merge_toml(base: &mut toml::Value, over: &toml::Value) {
+    match (base, over) {
+        (toml::Value::Table(b), toml::Value::Table(o)) => {
+            for (k, v) in o {
+                match b.get_mut(k) {
+                    Some(bv) => merge_toml(bv, v),
+                    None => {
+                        b.insert(k.clone(), v.clone());
+                    }
+                }
+            }
+        }
+        (b, o) => *b = o.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Write files under a unique temp dir and load the entry point.
+    fn load(files: &[(&str, &str)], entry: &str) -> Result<AgentConfig> {
+        let dir = std::env::temp_dir().join(format!(
+            "swarmdeck-agent-cfg-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir)?;
+        for (name, contents) in files {
+            std::fs::write(dir.join(name), contents)?;
+        }
+        AgentConfig::from_toml_path(&dir.join(entry))
+    }
+
+    #[test]
+    fn extends_overrides_only_given_fields() {
+        let cfg = load(
+            &[
+                (
+                    "base.toml",
+                    "[controller]\nendpoint = \"10.0.0.1\"\nid_code = \"s3cret\"\n",
+                ),
+                (
+                    "child.toml",
+                    "extends = \"base.toml\"\nrobot_id = \"r-1\"\n",
+                ),
+            ],
+            "child.toml",
+        )
+        .unwrap();
+        assert_eq!(cfg.robot_id, "r-1");
+        assert_eq!(cfg.controller.endpoint, "10.0.0.1:50051");
+        assert_eq!(cfg.controller.id_code, "s3cret");
+    }
+
+    #[test]
+    fn child_wins_over_base() {
+        let cfg = load(
+            &[
+                (
+                    "base.toml",
+                    "robot_id = \"generic\"\n[controller]\nendpoint = \"10.0.0.1\"\nid_code = \"s3cret\"\n",
+                ),
+                (
+                    "child.toml",
+                    "extends = \"base.toml\"\nrobot_id = \"r-2\"\n[controller]\nendpoint = \"127.0.0.1\"\n",
+                ),
+            ],
+            "child.toml",
+        )
+        .unwrap();
+        assert_eq!(cfg.robot_id, "r-2");
+        assert_eq!(cfg.controller.endpoint, "127.0.0.1:50051");
+        assert_eq!(cfg.controller.id_code, "s3cret");
+    }
+
+    #[test]
+    fn missing_required_field_still_errors() {
+        let err = load(
+            &[
+                (
+                    "base.toml",
+                    "[controller]\nendpoint = \"10.0.0.1\"\nid_code = \"s3cret\"\n",
+                ),
+                ("child.toml", "extends = \"base.toml\"\n"),
+            ],
+            "child.toml",
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("robot_id"), "{err}");
+    }
+
+    #[test]
+    fn extends_cycle_is_rejected() {
+        let err = load(
+            &[
+                ("a.toml", "extends = \"b.toml\"\nrobot_id = \"r\"\n"),
+                ("b.toml", "extends = \"a.toml\"\n"),
+            ],
+            "a.toml",
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("cycle"), "{err}");
+    }
+
+    #[test]
+    fn no_extends_works_as_before() {
+        let cfg = load(
+            &[(
+                "solo.toml",
+                "robot_id = \"r-3\"\n[controller]\nendpoint = \"10.0.0.1\"\nid_code = \"s3cret\"\n",
+            )],
+            "solo.toml",
+        )
+        .unwrap();
+        assert_eq!(cfg.robot_id, "r-3");
     }
 }
 

@@ -1,0 +1,7 @@
+# Generic agent config for the sim swarm: shared by every sim agent.
+# Per-agent files (agent-N.toml) extend this and only override what differs
+# (usually just robot_id). See AgentConfig::load_merged in crates/core.
+
+[controller]
+endpoint = "127.0.0.1"
+id_code  = "sim-swarm-secret"

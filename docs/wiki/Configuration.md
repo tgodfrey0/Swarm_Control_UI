@@ -105,6 +105,25 @@ id_code  = "lab1-swarm-secret"
 tls      = false
 ```
 
+### Generic agent config (`extends`)
+
+Per-agent files can inherit from a generic config and override only what
+differs (e.g. the robot id). `extends` takes a path relative to the file
+itself; tables are merged key-by-key, scalars replaced — the child wins.
+
+```toml
+# configs/sim/agent-base.toml — shared by every sim agent
+[controller]
+endpoint = "127.0.0.1"
+id_code  = "sim-swarm-secret"
+```
+
+```toml
+# configs/sim/agent-1.toml — per-agent override
+extends = "agent-base.toml"
+robot_id = "sim-01"
+```
+
 ## Host Defaults
 
 - `--swarm configs/lab` (swarm config directory)

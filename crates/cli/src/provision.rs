@@ -36,9 +36,8 @@ pub fn provision(
         format!("{ip}:{}", cfg.controller.grpc_listen.port())
     });
 
-    let binary = std::env::var("SWARMDECK_AGENT_BIN").unwrap_or_else(|_| {
-        "target/aarch64-unknown-linux-musl/release/swarmdeck-agent".to_string()
-    });
+    let binary = std::env::var("SWARMDECK_AGENT_BIN")
+        .unwrap_or_else(|_| "bin/swarmdeck-agent-aarch64".to_string());
 
     let mut targets: Vec<&RobotConfig> = cfg
         .robots

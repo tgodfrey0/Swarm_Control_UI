@@ -25,16 +25,18 @@ A **control host** maintains gRPC sessions with every **robot agent**, executes 
 
 ## Quick start
 
+Prerequisites: [just](https://github.com/casey/just) (build/test tasks), Rust 1.85+ (via [rustup](https://rustup.rs)), `protoc`, and `cargo-zigbuild` for cross-compiling.
+
 ```sh
-# Install toolchain
-pixi install
+# Build the binaries
+just build
 
 # Start sim host (WebUI at http://localhost:18082)
-pixi run host -- --swarm configs/sim
+./bin/swarmdeck --swarm configs/sim
 
-# Start two simulated robots
-pixi run agent-sim -- --config configs/sim/agent-1.toml
-pixi run agent-sim -- --config configs/sim/agent-2.toml
+# Start two simulated robots (each in its own terminal)
+./bin/swarmdeck-agent --config configs/sim/agent-1.toml
+./bin/swarmdeck-agent --config configs/sim/agent-2.toml
 ```
 
 ## Documentation
@@ -57,14 +59,14 @@ pixi run agent-sim -- --config configs/sim/agent-2.toml
 
 1. **Cross-compile** the agent for your target (see [Cross-Compilation](../../wiki/Cross-Compilation)):
    ```sh
-   pixi run agent-aarch64    # Raspberry Pi / Jetson (64-bit)
-   pixi run agent-armv7      # Raspberry Pi OS (32-bit)
-   pixi run agent-x86_64     # x86_64 SBCs
+   just compile-arm      # Raspberry Pi / Jetson (64-bit)
+   just compile-armv7    # Raspberry Pi OS (32-bit)
+   just compile-x86_64   # x86_64 SBCs
    ```
 
-2. Build the release binary:
+2. Build the release binaries:
    ```sh
-   cargo build --release -p swarmdeck-agent
+   just build
    ```
 
 ### Automatic Provisioning (SSH)
@@ -72,14 +74,14 @@ pixi run agent-sim -- --config configs/sim/agent-2.toml
 The CLI provisions robots over SSH — copies the binary, writes the config, and installs the systemd unit:
 
 ```sh
-pixi run provision                          # all robots in configs/lab
-pixi run provision -- --robots tb-01 tb-02  # specific robots only
-pixi run provision -- --user pi             # non-root SSH user
+./bin/swarmdeck-cli provision --swarm configs/lab                        # all robots in configs/lab
+./bin/swarmdeck-cli provision --swarm configs/lab --robots tb-01,tb-02   # specific robots only
+./bin/swarmdeck-cli provision --swarm configs/lab --user pi              # non-root SSH user
 ```
 
 Environment variables:
 - `SWARMDECK_CONTROLLER_ENDPOINT` — override the agent-to-host endpoint (e.g. `100.64.0.1:50051`)
-- `SWARMDECK_AGENT_BIN` — path to the cross-compiled binary (default: `target/aarch64-unknown-linux-musl/release/swarmdeck-agent`)
+- `SWARMDECK_AGENT_BIN` — path to the cross-compiled binary (default: `bin/swarmdeck-agent-aarch64`)
 
 ### Manual Install
 
@@ -148,7 +150,7 @@ By default the agent logs to:
 
 1. Fork the repo
 2. Create a feature branch
-3. Run `pixi run lint` and `pixi run test`
+3. Run `just lint` and `just test`
 4. Submit a pull request
 
 See [Development](../../wiki/Development) for detailed setup instructions.
