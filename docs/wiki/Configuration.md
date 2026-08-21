@@ -1,6 +1,6 @@
 # Configuration
 
-SwarmDeck uses TOML configuration files organized in directories.
+SwarmDeck uses TOML configuration files organised in directories.
 
 ## Directory Structure
 
@@ -29,6 +29,10 @@ grpc_listen = "0.0.0.0:50051"       # where agents phone home
 ui_bind     = "0.0.0.0:8080"        # WebUI + HTTP/WS API
 # tls = { cert = "certs/host.crt", key = "certs/host.key", ca = "certs/ca.crt" }
 
+[vars]                          # swarm-wide defaults, inherited by every robot
+site        = "lab-1"
+ros_distro  = "humble"
+
 [[robots]]
 id       = "tb-01"
 name     = "turtlebot-1"
@@ -36,7 +40,7 @@ type     = "turtlebot3"       # must exist in robot_types
 address  = "10.0.0.21"        # SSH endpoint for provisioning
 simulated = false             # true for agents on the host
 env      = { ROS_DOMAIN_ID = "42" }
-vars     = { ns = "tb01", model = "burger" }
+vars     = { ns = "tb01", model = "burger" }   # overrides [vars] per key
 ```
 
 ## Robot Types (`robots/*.toml`)
@@ -92,7 +96,16 @@ swarmdeck-cli run start_trial --all --yes
 | `{{robot_name}}` | `turtlebot-1` (or the id if unnamed) |
 | `{{robot_type}}` | `turtlebot3` |
 | `{{address}}` | the robot's `address` (may be empty) |
-| `{{vars.<key>}}` | per-robot values from `swarm.toml` |
+| `{{vars.<key>}}` | per-robot values from `swarm.toml`, falling back to swarm-level `[vars]` |
+
+### Swarm-Level Variables
+
+A `[vars]` table in `swarm.toml` defines variables shared by the whole
+swarm. Every robot inherits them, so an action can reference
+`{{vars.site}}` without each robot having to repeat the value. A key set
+in a robot's own `vars` takes precedence over the swarm default on a
+per-key basis, and robots that phone home unannounced and are adopted
+receive the swarm values as well.
 
 ## `agent.toml` (on the robot)
 

@@ -182,16 +182,16 @@ See `crates/host/src/grpc.rs` (stream handling) and
 
 ## Building a custom agent
 
-Minimum viable behavior:
+Minimum viable behaviour:
 
 1. Dial `controller.endpoint` (TLS per config) and open `Session`.
 2. Send `Register` (correct `robot_id` + `id_code`) as the very first message.
 3. Send `Status` every ~5 s (never longer than 15 s).
 4. Handle commands: spawn `RunAction` (ack it, stream logs, report a final
-   `ActionResult`), honor `StopAction` and `timeout_sec`, reply to `Ping`
+   `ActionResult`), honour `StopAction` and `timeout_sec`, reply to `Ping`
    with `Heartbeat`.
 5. Reconnect with backoff on any stream error; kill `kill_on_disconnect`
    actions first.
 
 See `crates/agent/src/session.rs` and `crates/agent/src/runner.rs` for the
-reference behavior, including process-group handling and log backpressure.
+reference behaviour, including process-group handling and log backpressure.

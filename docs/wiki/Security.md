@@ -67,7 +67,7 @@ Robots that phone home but aren't in the config are "adopted" at runtime:
 
 | Concern | Mitigation |
 |---------|------------|
-| Unauthorized agent connections | Use strong `id_code` + TLS |
+| Unauthorised agent connections | Use strong `id_code` + TLS |
 | Command injection | Audit all action `command` strings |
 | Agent privilege escalation | Run agent as unprivileged user |
 | Network exposure | Restrict `ui_bind` to localhost or firewall |

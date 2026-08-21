@@ -208,6 +208,7 @@ const RUNS = [
 ];
 
 let lastRunPost = null;
+let lastStopPost = null;
 global.fetch = async (url, opts) => {
   if (opts && opts.method === "POST" && url === "/api/run") {
     lastRunPost = JSON.parse(opts.body);
@@ -232,6 +233,10 @@ global.fetch = async (url, opts) => {
       }),
       text: async () => "{}",
     };
+  }
+  if (opts && opts.method === "POST" && url === "/api/stop") {
+    lastStopPost = JSON.parse(opts.body);
+    return { ok: true, status: 200, json: async () => ["sim-01"], text: async () => "{}" };
   }
   let body;
   switch (url) {
@@ -401,10 +406,46 @@ setTimeout(() => {
               "confirmed run dispatched"
             );
             assertEq(lastRunPost.confirm, true, "resubmit carried confirm=true");
-            console.log(
-              "PASS: webui contract test (actions, targets, render, WS, online-only all, confirm)"
+
+            // Kill flow: the still-running fixture run shows a Kill button;
+            // confirming it POSTs /api/stop scoped to that run's robots.
+            const killBtn = getEl("runs")
+              .children[0].children.find((c) => c.className === "kill");
+            assert(killBtn && typeof killBtn.onclick === "function", "kill button on running run");
+            killBtn.onclick();
+            assert(
+              !getEl("modal").classList.contains("hidden"),
+              "kill asks for confirmation first"
             );
-            process.exit(0);
+            assert(
+              getEl("modal-text").textContent.includes("sim-01"),
+              "kill confirm names the targeted robot"
+            );
+            lastStopPost = null;
+            getEl("modal-close").onclick(); // Proceed
+            setTimeout(() => {
+              try {
+                assert(
+                  getEl("modal").classList.contains("hidden"),
+                  "modal closed after kill"
+                );
+                assert(lastStopPost, "stop request sent");
+                assertEq(
+                  JSON.stringify(lastStopPost.targets),
+                  JSON.stringify({ robots: ["sim-01"] }),
+                  "stop scoped to the run's running robots"
+                );
+                assertEq(lastStopPost.confirm, true, "stop carried confirm=true");
+                console.log(
+                  "PASS: webui contract test (actions, targets, render, WS, online-only all, confirm, ansi, kill)"
+                );
+                process.exit(0);
+              } catch (e) {
+                console.error("FAIL:", e.message);
+                if (e.stack) console.error(e.stack.split("\n").slice(0, 4).join("\n"));
+                process.exit(1);
+              }
+            }, 150);
           } catch (e) {
             console.error("FAIL:", e.message);
             if (e.stack) console.error(e.stack.split("\n").slice(0, 4).join("\n"));

@@ -16,6 +16,10 @@ pub struct SwarmConfig {
     /// any robot, with `{{robot_id}}` / `{{vars.*}}` substituted per robot.
     #[serde(default)]
     pub actions: BTreeMap<String, ActionConfig>,
+    /// Swarm-wide default variables, inherited by every robot. A robot's own
+    /// `vars` entry wins per key.
+    #[serde(default)]
+    pub vars: BTreeMap<String, String>,
     #[serde(default)]
     pub robots: Vec<RobotConfig>,
 }

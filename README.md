@@ -185,6 +185,6 @@ By default the agent logs to:
 
 See [Development](../../wiki/Development) for detailed setup instructions.
 
-## License
+## Licence
 
 MIT -- see [LICENSE](LICENSE) for details.

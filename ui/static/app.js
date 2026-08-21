@@ -119,8 +119,42 @@ function renderRuns() {
     el.innerHTML = `<div class="action">${escapeHtml(run.action)}</div>` +
       (run.created_ms != null ? `<div class="muted">${formatTime(run.created_ms)}</div>` : "") +
       `<div class="status">${statuses}</div>`;
+    // Still in flight somewhere → offer a kill switch for exactly those robots.
+    const running = run.robots.filter(([, st]) => st.status === "running").map(([robot]) => robot);
+    if (running.length) {
+      const btn = document.createElement("button");
+      btn.className = "kill";
+      btn.textContent = "Kill";
+      btn.onclick = () => killRun(run.run_id, running, btn);
+      el.appendChild(btn);
+    }
     box.appendChild(el);
   }
+}
+
+// Ask for confirmation, then POST /api/stop scoped to this run's robots.
+async function killRun(runId, robots, btn) {
+  showModal(
+    "Kill running action",
+    `Send stop to: ${robots.join(", ")}\n(run ${runId})`,
+    async () => {
+      btn.disabled = true;
+      btn.textContent = "stopping…";
+      try {
+        await fetchJson("/api/stop", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ targets: { robots }, confirm: true }),
+        });
+        // The WS `run` event re-renders the entry once statuses flip.
+      } catch (e) {
+        showModal("Stop failed", String(e.message || e));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Kill";
+      }
+    }
+  );
 }
 
 function populateActionSelect() {

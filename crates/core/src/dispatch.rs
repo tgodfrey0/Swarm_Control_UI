@@ -100,6 +100,13 @@ pub fn select_robots(
             .collect(),
     };
     chosen.dedup_by(|a, b| a.id == b.id);
+    // Swarm-level [vars] act as defaults for every robot; the robot's own
+    // entry wins per key.
+    for robot in &mut chosen {
+        for (k, v) in &cfg.vars {
+            robot.vars.entry(k.clone()).or_insert_with(|| v.clone());
+        }
+    }
     Ok(chosen)
 }
 
@@ -157,6 +164,10 @@ mod tests {
                     background: false,
                 },
             )]),
+            vars: BTreeMap::from([
+                ("site".into(), "lab-1".into()),
+                ("ns".into(), "swarm".into()),
+            ]),
             robots: vec![
                 RobotConfig {
                     id: "tb-01".into(),
@@ -165,7 +176,7 @@ mod tests {
                     address: None,
                     simulated: false,
                     env: BTreeMap::new(),
-                    vars: BTreeMap::new(),
+                    vars: BTreeMap::from([("ns".into(), "tb01".into())]),
                     adopted: false,
                 },
                 RobotConfig {
@@ -223,5 +234,53 @@ mod tests {
             bad.validate(),
             Err(ConfigError::BadSwarmActionName { .. })
         ));
+    }
+
+    #[test]
+    fn swarm_vars_inherit_to_all_robots() {
+        let c = cfg();
+        let r = select_robots(&c, &ApiTargets::All, &[]).unwrap();
+        for robot in &r {
+            assert_eq!(
+                robot.vars.get("site").map(String::as_str),
+                Some("lab-1"),
+                "{} inherits swarm var",
+                robot.id
+            );
+        }
+    }
+
+    #[test]
+    fn robot_var_wins_over_swarm_default() {
+        let c = cfg();
+        let r = select_robots(&c, &ApiTargets::All, &[]).unwrap();
+        let tb = r.iter().find(|r| r.id == "tb-01").unwrap();
+        assert_eq!(tb.vars.get("ns").map(String::as_str), Some("tb01"));
+        // …while a robot without the key still picks up the swarm default.
+        let uav = r.iter().find(|r| r.id == "uav-01").unwrap();
+        assert_eq!(uav.vars.get("ns").map(String::as_str), Some("swarm"));
+    }
+
+    #[test]
+    fn swarm_vars_parse_from_toml() {
+        let parsed = SwarmConfig::from_toml_str(
+            r#"
+[controller]
+name = "t"
+id_code = "s"
+grpc_listen = "0.0.0.0:50051"
+
+[robot_types.x]
+
+[vars]
+site = "lab-1"
+
+[[robots]]
+id = "r1"
+type = "x"
+"#,
+        )
+        .unwrap();
+        assert_eq!(parsed.vars.get("site").map(String::as_str), Some("lab-1"));
     }
 }
