@@ -32,6 +32,7 @@ pixi run agent-sim -- --config configs/sim/agent-2.toml
 - [[Configuration]] -- TOML config reference
 - [[CLI-Reference]] -- All CLI subcommands
 - [[HTTP-API]] -- HTTP and WebSocket API docs
+- [[Agent-API]] -- gRPC protocol between agents and the controller
 - [[Cross-Compilation]] -- Building static musl agents
 - [[Provisioning]] -- SSH deployment to robots
 - [[Security]] -- TLS, auth, and security notes

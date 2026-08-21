@@ -45,6 +45,7 @@ pixi run agent-sim -- --config configs/sim/agent-2.toml
 | Configuration | [wiki/Configuration](../../wiki/Configuration) |
 | CLI Reference | [wiki/CLI-Reference](../../wiki/CLI-Reference) |
 | HTTP/WS API | [wiki/HTTP-API](../../wiki/HTTP-API) |
+| Agent API (gRPC) | [wiki/Agent-API](../../wiki/Agent-API) |
 | Cross-Compilation | [wiki/Cross-Compilation](../../wiki/Cross-Compilation) |
 | Provisioning | [wiki/Provisioning](../../wiki/Provisioning) |
 | Security | [wiki/Security](../../wiki/Security) |
