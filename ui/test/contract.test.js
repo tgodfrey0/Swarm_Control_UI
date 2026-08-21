@@ -321,6 +321,26 @@ setTimeout(() => {
 
     // Log copy button is wired up.
     assert(typeof getEl("log-copy").onclick === "function", "log-copy bound");
+    assert(typeof getEl("log-follow").onclick === "function", "log-follow bound");
+
+    // ANSI SGR codes become styled spans; raw escapes never reach the DOM.
+    // (app.js is eval'd in strict mode above, so its declarations don't leak
+    // into this scope — re-instantiate without the boot call to grab helpers.)
+    const ui = new Function(
+      SRC.replace(/^"use strict";/, "").replace(/init\(\);\s*$/, "") +
+      "\nreturn { ansiToHtml };"
+    )();
+    assertEq(ui.ansiToHtml("plain text"), "plain text", "plain log line untouched");
+    const green = ui.ansiToHtml("\x1b[32mINFO\x1b[0m ok");
+    assert(!green.includes("\x1b"), "escape bytes stripped");
+    assert(green.includes('class="ansi-fg2"'), "green SGR mapped to class");
+    assert(green.endsWith("ok"), "text after reset emitted outside span");
+    assert(
+      ui.ansiToHtml("<script>&</script>").includes("&lt;script&gt;"),
+      "html stays escaped inside ansi conversion"
+    );
+    const gray = ui.ansiToHtml("\x1b[90m[\x1b[0m2026\x1b[90m]\x1b[0m");
+    assert(gray.includes('class="ansi-fg8"'), "bright-black SGR mapped to class");
 
     // WebSocket connected → live updates (was stuck on "connecting…").
     assert(wsCreated, "WebSocket created");

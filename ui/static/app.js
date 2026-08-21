@@ -373,7 +373,7 @@ function appendLogs(lines) {
     div.className = "line" + (l.stderr ? " stderr" : "");
     div.innerHTML =
       `<span class="ts">${formatTime(l.ts_ms)}</span> ` +
-      escapeHtml(l.text);
+      ansiToHtml(l.text);
     view.appendChild(div);
   }
   if (wasBottom) view.scrollTop = view.scrollHeight;
@@ -440,6 +440,66 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   }[c]));
+}
+
+// ---------------------------------------------------------------------------
+// ANSI escape codes
+// ---------------------------------------------------------------------------
+// Agent output carries SGR sequences (e.g. \x1b[32m…\x1b[0m). Convert them to
+// styled spans. Text is HTML-escaped FIRST and only then scanned, so no
+// untrusted markup can slip through; the ESC byte itself survives escaping.
+
+const ANSI_SGR_SPLIT = /(\x1b\[[0-9;]*m)/;
+
+function ansiToHtml(raw) {
+  // Strip other CSI sequences (cursor moves etc.), keep only …m (SGR).
+  const text = escapeHtml(raw).replace(/\x1b\[[0-9;]*[A-LN-Za-ln-z]/g, "");
+  let out = "";
+  let cur = "";
+  for (const part of text.split(ANSI_SGR_SPLIT)) {
+    const m = part.match(/^\x1b\[([0-9;]*)m$/);
+    if (!m) {
+      out += part;
+      continue;
+    }
+    const sig = ansiSignature(m[1]);
+    if (sig !== cur) {
+      if (cur) out += "</span>";
+      cur = sig;
+      if (sig) out += `<span class="${sig}">`;
+    }
+  }
+  if (cur) out += "</span>";
+  return out;
+}
+
+// Map SGR params to a CSS class list; returns "" when nothing is active.
+function ansiSignature(params) {
+  const codes = params === "" ? [0] : params.split(";").map((s) => (s === "" ? 0 : parseInt(s, 10)));
+  let bold = false, italic = false, under = false, fg = null, bg = null;
+  for (const c of codes) {
+    if (c === 0) { bold = italic = under = false; fg = bg = null; }
+    else if (c === 1 || c === 2) bold = true;
+    else if (c === 3) italic = true;
+    else if (c === 4) under = true;
+    else if (c === 22) bold = false;
+    else if (c === 23) italic = false;
+    else if (c === 24) under = false;
+    else if (c >= 30 && c <= 37) fg = c - 30;
+    else if (c === 39) fg = null;
+    else if (c >= 90 && c <= 97) fg = c - 90 + 8;
+    else if (c >= 40 && c <= 47) bg = c - 40;
+    else if (c === 49) bg = null;
+    else if (c >= 100 && c <= 107) bg = c - 100 + 8;
+    // Extended colors (38;5;n / 38;2;r;g;b) are ignored.
+  }
+  const cls = [];
+  if (bold) cls.push("ansi-b");
+  if (italic) cls.push("ansi-i");
+  if (under) cls.push("ansi-u");
+  if (fg !== null) cls.push(`ansi-fg${fg}`);
+  if (bg !== null) cls.push(`ansi-bg${bg}`);
+  return cls.join(" ");
 }
 
 init();

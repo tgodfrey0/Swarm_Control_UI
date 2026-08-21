@@ -94,6 +94,9 @@ main {
   padding: 16px;
   max-width: 1500px;
   margin: 0 auto;
+  /* Sections hug their content instead of stretching to the tallest column —
+     otherwise empty panel space shows below the swarm grid / log view. */
+  align-items: start;
 }
 
 section {
@@ -180,15 +183,50 @@ button:disabled { opacity: .55; cursor: default; filter: none; }
 .log .line { white-space: pre-wrap; word-break: break-word; }
 .log .line.stderr { color: var(--stderr); }
 .log .ts { color: var(--ts); }
-.follow { float: right; font-size: 11px; padding: 3px 8px; margin-top: 6px; background: var(--chip); color: var(--muted); }
 
-/* Copy button sits at the right edge of the "LOGS — id" header row. */
+/* ANSI SGR colors for log output (classes emitted by ansiToHtml in app.js). */
+.ansi-b { font-weight: 600; }
+.ansi-i { font-style: italic; }
+.ansi-u { text-decoration: underline; }
+.ansi-fg0 { color: #566069; }
+.ansi-fg1 { color: var(--bad); }
+.ansi-fg2 { color: var(--ok); }
+.ansi-fg3 { color: var(--warn); }
+.ansi-fg4 { color: var(--accent); }
+.ansi-fg5 { color: #bc8cff; }
+.ansi-fg6 { color: #39c5cf; }
+.ansi-fg7 { color: var(--text); }
+.ansi-fg8 { color: var(--muted); }
+.ansi-fg9 { color: #ff7b72; }
+.ansi-fg10 { color: #56d364; }
+.ansi-fg11 { color: #e3b341; }
+.ansi-fg12 { color: #58a6ff; }
+.ansi-fg13 { color: #d2a8ff; }
+.ansi-fg14 { color: #76e3ea; }
+.ansi-fg15 { color: #f0f6fc; }
+.ansi-bg1 { background: rgba(248, 81, 73, .25); }
+.ansi-bg2 { background: rgba(46, 160, 67, .25); }
+.ansi-bg3 { background: rgba(210, 153, 34, .3); }
+.ansi-bg4 { background: rgba(59, 130, 246, .3); }
+.ansi-bg5 { background: rgba(188, 140, 255, .3); }
+.ansi-bg6 { background: rgba(57, 197, 207, .3); }
+.ansi-bg7 { background: rgba(214, 222, 235, .25); }
+/* Bright-on-light themes need darker variants to stay readable. */
+[data-theme="light"] .ansi-fg0 { color: #57606a; }
+[data-theme="light"] .ansi-fg9 { color: #cf222e; }
+[data-theme="light"] .ansi-fg10 { color: #1a7f37; }
+[data-theme="light"] .ansi-fg11 { color: #9a6700; }
+[data-theme="light"] .ansi-fg12 { color: #0969da; }
+[data-theme="light"] .ansi-fg13 { color: #8250df; }
+[data-theme="light"] .ansi-fg14 { color: #1b7c83; }
+[data-theme="light"] .ansi-fg15 { color: #1f2328; }
+/* Header-row actions: grey follow toggle, then blue Copy at the far edge. */
 #logs h2 { display: flex; align-items: center; gap: 8px; }
-#log-copy {
-  margin-left: auto;
+#logs h2 button {
   font-size: 11px; padding: 3px 10px;
   text-transform: none; letter-spacing: 0;
 }
+#log-follow { margin-left: auto; background: var(--chip); color: var(--muted); }
 
 .muted { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
