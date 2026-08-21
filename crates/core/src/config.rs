@@ -223,6 +223,10 @@ impl RobotConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentConfig {
+    /// Robot identity. Optional in the TOML so a shared base config can omit
+    /// it and each agent passes `--robot-id` instead; the agent rejects an
+    /// empty id at startup.
+    #[serde(default)]
     pub robot_id: String,
     pub controller: AgentControllerConfig,
     /// Robot-local environment inherited by every spawned action process.

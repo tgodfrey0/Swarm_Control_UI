@@ -130,6 +130,36 @@ endpoint = "10.0.0.1:50051"
 id_code  = "lab1-swarm-secret"
 ```
 
+#### Sharing one config across robots
+
+Robots that differ only in `robot_id` don't need their own config file. Either
+extend a generic base config, or override the id on the command line.
+
+**`extends`** — a per-robot TOML inherits from a base file (path relative to
+the referencing file). Tables are merged key-by-key and scalars replaced, so
+the child only states what differs:
+
+```toml
+# agent-base.toml — shared by every robot
+[controller]
+endpoint = "10.0.0.1:50051"
+id_code  = "lab1-swarm-secret"
+```
+
+```toml
+# tb-01.toml — per-robot override
+extends = "agent-base.toml"
+robot_id = "tb-01"
+```
+
+**`--robot-id`** — point every agent at the same base config and pass the id
+as a flag:
+
+```sh
+./bin/swarmdeck-agent --config agent-base.toml --robot-id sim-01
+./bin/swarmdeck-agent --config agent-base.toml --robot-id sim-02
+```
+
 ### Logs
 
 By default the agent logs to:

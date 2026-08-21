@@ -5,7 +5,7 @@ The CLI (`swarmdeck-cli`) communicates with the control host over HTTP/WS.
 ## Usage
 
 ```sh
-pixi run cli -- <subcommand> [flags]
+./bin/swarmdeck-cli --host http://<host>:<port> <subcommand> [flags]
 ```
 
 ## Subcommands

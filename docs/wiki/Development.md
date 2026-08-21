@@ -2,7 +2,10 @@
 
 ## Prerequisites
 
-- [Pixi](https://pixi.sh) package manager
+- [just](https://github.com/casey/just) task runner
+- Rust 1.85+ via [rustup](https://rustup.rs) (run `activate.sh` once to install toolchain + musl targets)
+- `protoc` (protobuf compiler)
+- `cargo-zigbuild` + `zig` (only needed for cross-compilation)
 - Git
 
 ## Setup
@@ -10,44 +13,50 @@
 ```sh
 git clone <repo-url>
 cd swarmdeck
-pixi install
+./activate.sh   # idempotent: installs the stable toolchain and musl targets
 ```
 
-This installs all dependencies: Rust toolchain (via `activate.sh`), protobuf, zig, cargo-zigbuild, openssh.
+## Building
+
+```sh
+just build      # cargo build --release --workspace, binaries land in bin/
+```
 
 ## Running
 
+Binaries are run directly from `bin/`:
+
 ```sh
 # Control host (WebUI at localhost:8080)
-pixi run host
+./bin/swarmdeck --swarm configs/lab
 
 # Simulated swarm (WebUI at localhost:18082)
-pixi run host -- --swarm configs/sim
+./bin/swarmdeck --swarm configs/sim
 
 # Robot agent
-pixi run agent -- --config /etc/swarm-agent/agent.toml
+./bin/swarmdeck-agent --config /etc/swarm-agent/agent.toml
 
 # Simulated agent
-pixi run agent-sim -- --config configs/sim/agent-1.toml
+./bin/swarmdeck-agent --config configs/sim/agent-1.toml
 
 # CLI
-pixi run cli -- status
+./bin/swarmdeck-cli --host http://127.0.0.1:18082 status
 ```
 
 ## Code Quality
 
 ```sh
-pixi run check      # cargo check --workspace
-pixi run lint       # cargo clippy --workspace --all-targets -- -D warnings
-pixi run fmt        # cargo fmt --all
+just check      # cargo check --workspace
+just lint       # cargo clippy --workspace --all-targets -- -D warnings
+just fmt        # cargo fmt --all
 ```
 
 ## Testing
 
 ```sh
-pixi run test       # Run all tests (Rust + WebUI)
-pixi run test-rust  # Cargo tests only
-pixi run test-webui # WebUI contract test only
+just test       # Run all tests (Rust + WebUI)
+just test-rust  # Cargo tests only
+just test-webui # WebUI contract test only
 ```
 
 ### Rust Tests
@@ -83,7 +92,7 @@ docs/                Documentation and wiki pages
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Make changes
-4. Run `pixi run lint` and `pixi run test`
+4. Run `just lint` and `just test`
 5. Commit with a clear message
 6. Push and open a pull request
 

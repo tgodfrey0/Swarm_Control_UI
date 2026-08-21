@@ -2,10 +2,9 @@ pipeline {
     agent any
 
     environment {
-        PIXI_HOME = "${WORKSPACE}/.pixi"
         CARGO_HOME = "${WORKSPACE}/.cargo"
         RUSTUP_HOME = "${WORKSPACE}/.rustup"
-        PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/.pixi/bin:${WORKSPACE}/node/bin:${env.PATH}"
+        PATH = "${WORKSPACE}/.cargo/bin:${WORKSPACE}/bin:${WORKSPACE}/node/bin:${env.PATH}"
         PROTOC = "${WORKSPACE}/protoc/bin/protoc"
     }
 
@@ -19,10 +18,12 @@ pipeline {
         stage('Setup') {
             steps {
                 sh 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable'
-                sh 'curl -fsSL https://pixi.sh/install.sh | bash'
+                sh 'bash activate.sh'
+                sh 'cargo install --locked cargo-zigbuild'
+                sh 'pip3 install ziglang'
+                sh 'curl --proto "=https" --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ${WORKSPACE}/bin'
                 sh 'curl -fsSL https://github.com/protocolbuffers/protobuf/releases/download/v28.3/protoc-28.3-linux-x86_64.zip -o /tmp/protoc.zip && unzip -o /tmp/protoc.zip -d ${WORKSPACE}/protoc && chmod +x ${WORKSPACE}/protoc/bin/protoc'
                 sh 'mkdir -p ${WORKSPACE}/node && curl -fsSL https://nodejs.org/dist/v22.18.0/node-v22.18.0-linux-x64.tar.xz | tar -xJ -C ${WORKSPACE}/node --strip-components=1'
-                sh 'pixi install'
             }
         }
 
@@ -30,12 +31,12 @@ pipeline {
             parallel {
                 stage('Format') {
                     steps {
-                        sh 'pixi run fmt && git diff --exit-code'
+                        sh 'just fmt && git diff --exit-code'
                     }
                 }
                 stage('Clippy') {
                     steps {
-                        sh 'pixi run lint'
+                        sh 'just lint'
                     }
                 }
             }
@@ -51,7 +52,7 @@ pipeline {
                 }
                 stage('WebUI Contract Test') {
                     steps {
-                        sh 'pixi run test-webui'
+                        sh 'just test-webui'
                     }
                 }
             }
@@ -81,17 +82,17 @@ pipeline {
             parallel {
                 stage('Agent aarch64') {
                     steps {
-                        sh 'pixi run agent-aarch64'
+                        sh 'just compile-arm'
                     }
                 }
                 stage('Agent armv7') {
                     steps {
-                        sh 'pixi run agent-armv7'
+                        sh 'just compile-armv7'
                     }
                 }
                 stage('Agent x86_64') {
                     steps {
-                        sh 'pixi run agent-x86_64'
+                        sh 'just compile-x86_64'
                     }
                 }
             }

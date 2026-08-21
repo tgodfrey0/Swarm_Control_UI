@@ -14,16 +14,18 @@ SwarmDeck is a control host that maintains gRPC sessions with every robot agent,
 
 ## Getting Started
 
+Prerequisites: [just](https://github.com/casey/just), Rust 1.85+ (via [rustup](https://rustup.rs)), `protoc`, and `cargo-zigbuild` for cross-compiling.
+
 ```sh
-# Install toolchain
-pixi install
+# Build the binaries (into bin/)
+just build
 
 # Start sim host (WebUI at http://localhost:18082)
-pixi run host -- --swarm configs/sim
+./bin/swarmdeck --swarm configs/sim
 
 # Start two simulated robots
-pixi run agent-sim -- --config configs/sim/agent-1.toml
-pixi run agent-sim -- --config configs/sim/agent-2.toml
+./bin/swarmdeck-agent --config configs/sim/agent-1.toml
+./bin/swarmdeck-agent --config configs/sim/agent-2.toml
 ```
 
 ## Wiki Pages

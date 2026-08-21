@@ -6,7 +6,7 @@
 // UI renders, the action list populates, and the WebSocket connects. This is
 // the regression guard for the `robot_type`/`robotType` class of bug.
 //
-// Run: node ui/test/contract.test.js   (or `pixi run test-webui`)
+// Run: node ui/test/contract.test.js   (or `just test-webui`)
 
 const fs = require("fs");
 const path = require("path");

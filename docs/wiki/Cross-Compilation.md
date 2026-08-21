@@ -4,31 +4,26 @@ SwarmDeck cross-compiles static musl agent binaries for ARM and x86_64 Linux rob
 
 ## Prerequisites
 
-The pixi environment provides all tools:
-
-```sh
-pixi install
-```
-
-This installs: `rustup` (via `activate.sh`), `zig`, `cargo-zigbuild`, musl targets.
+- Rust via [rustup](https://rustup.rs) (run `activate.sh` to install the toolchain + musl targets)
+- [`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild) and `zig`
 
 ## Build Commands
 
 ```sh
 # Primary target: 64-bit Raspberry Pi / Jetson
-pixi run agent-aarch64
-# Output: target/aarch64-unknown-linux-musl/release/swarmdeck-agent
+just compile-arm
+# Output: bin/swarmdeck-agent-aarch64
 
 # 32-bit Raspberry Pi OS
-pixi run agent-armv7
-# Output: target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent
+just compile-armv7
+# Output: bin/swarmdeck-agent-armv7
 
 # x86_64 SBCs / laptops
-pixi run agent-x86_64
-# Output: target/x86_64-unknown-linux-musl/release/swarmdeck-agent
+just compile-x86_64
+# Output: bin/swarmdeck-agent-x86_64
 
 # All three at once
-pixi run agent-all
+just compile-all
 ```
 
 ## Binary Details
@@ -57,8 +52,8 @@ rustup target add aarch64-unknown-linux-musl armv7-unknown-linux-musleabihf x86_
 
 ### Protobuf compilation errors
 
-Ensure `protoc` is available (pixi installs it):
+Ensure `protoc` is installed and on your `PATH`:
 
 ```sh
-pixi run protoc --version
+protoc --version
 ```

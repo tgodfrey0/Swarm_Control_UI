@@ -46,22 +46,22 @@ test: test-rust test-webui
 # --- cross-compile the agent (static musl, no glibc deps) ---------------------
 
 # Cross-compile a static musl agent for aarch64 Linux (RPi / Jetson, 64-bit OS).
-compile-arm:
+cross-compile-arm:
     cargo zigbuild -p swarmdeck-agent --release --target aarch64-unknown-linux-musl
     @mkdir -p bin
     @cp --remove-destination -f target/aarch64-unknown-linux-musl/release/swarmdeck-agent bin/swarmdeck-agent-aarch64
 
 # Cross-compile a static musl agent for armv7 Linux (32-bit Raspberry Pi OS).
-compile-armv7:
+cross-compile-armv7:
     cargo zigbuild -p swarmdeck-agent --release --target armv7-unknown-linux-musleabihf
     @mkdir -p bin
     @cp --remove-destination -f target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent bin/swarmdeck-agent-armv7
 
 # Cross-compile a static musl agent for x86_64 Linux (SBCs / laptops).
-compile-x86_64:
+cross-compile-x86_64:
     cargo zigbuild -p swarmdeck-agent --release --target x86_64-unknown-linux-musl
     @mkdir -p bin
     @cp --remove-destination -f target/x86_64-unknown-linux-musl/release/swarmdeck-agent bin/swarmdeck-agent-x86_64
 
 # Cross-compile for all three targets (aarch64 + armv7 + x86_64).
-compile-all: compile-arm compile-armv7 compile-x86_64
+cross-compile-all: cross-compile-arm cross-compile-armv7 cross-compile-x86_64

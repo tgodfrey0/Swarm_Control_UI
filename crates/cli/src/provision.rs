@@ -1,6 +1,5 @@
 // SSH provisioning: copies the agent binary + config to each robot and
-// installs a systemd unit. Uses the system `ssh`/`scp` binaries (pixi's
-// `openssh` on unix).
+// installs a systemd unit. Uses the system `ssh`/`scp` binaries.
 
 use std::path::Path;
 use std::process::Command;

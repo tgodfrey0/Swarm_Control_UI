@@ -14,7 +14,7 @@ For each configured robot (with `address` and `simulated = false`):
 
 - SSH access to target robots (key-based auth recommended)
 - Agent binary cross-compiled for the target architecture
-- `openssh` (provided by pixi on Linux/macOS)
+- `openssh` (`ssh`/`scp` on Linux/macOS)
 
 ## Usage
 
@@ -78,8 +78,8 @@ Robots are skipped if:
 - No `address` configured
 - `simulated = true`
 
-## Using with Pixi
+## Example
 
 ```sh
-pixi run provision -- --user pi --robots tb-01
+./bin/swarmdeck-cli provision --swarm configs/lab --user pi --robots tb-01
 ```
