@@ -33,6 +33,7 @@ async function init() {
   bindRunForm();
   bindModal();
   bindLogFollow();
+  bindLogCopy();
   bindThemeToggle();
   connectWs();
 }
@@ -115,9 +116,9 @@ function renderRuns() {
       .join("");
     const el = document.createElement("div");
     el.className = "run";
-    el.innerHTML = `<div class="action">${escapeHtml(run.action)}</div>
-      <div class="muted">${escapeHtml(run.run_id)}</div>
-      <div class="status">${statuses}</div>`;
+    el.innerHTML = `<div class="action">${escapeHtml(run.action)}</div>` +
+      (run.created_ms != null ? `<div class="muted">${formatTime(run.created_ms)}</div>` : "") +
+      `<div class="status">${statuses}</div>`;
     box.appendChild(el);
   }
 }
@@ -370,14 +371,35 @@ function appendLogs(lines) {
   for (const l of lines) {
     const div = document.createElement("div");
     div.className = "line" + (l.stderr ? " stderr" : "");
-    const ts = new Date(l.ts_ms);
-    const pad = (n) => String(n).padStart(2, "0");
     div.innerHTML =
-      `<span class="ts">${pad(ts.getHours())}:${pad(ts.getMinutes())}:${pad(ts.getSeconds())}</span>` +
+      `<span class="ts">${formatTime(l.ts_ms)}</span> ` +
       escapeHtml(l.text);
     view.appendChild(div);
   }
   if (wasBottom) view.scrollTop = view.scrollHeight;
+}
+
+function bindLogCopy() {
+  const btn = $("log-copy");
+  btn.onclick = async () => {
+    const lines = [...$("log-view").querySelectorAll(".line")];
+    if (!lines.length) return;
+    // Copy exactly what is visible, timestamps included.
+    const text = lines.map((el) => el.textContent).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard API needs a secure context; fall back for plain-HTTP LANs.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    btn.textContent = "copied!";
+    setTimeout(() => { btn.textContent = "copy"; }, 1200);
+  };
 }
 
 function bindLogFollow() {
@@ -406,6 +428,12 @@ function bindThemeToggle() {
 function naturalCompare(a, b) {
   // Numeric-aware ordering so ids sort as sim-1, sim-2, …, sim-10.
   return a.localeCompare(b, undefined, { numeric: true });
+}
+
+function formatTime(ms) {
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 function escapeHtml(s) {

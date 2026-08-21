@@ -179,8 +179,16 @@ button:disabled { opacity: .55; cursor: default; filter: none; }
 }
 .log .line { white-space: pre-wrap; word-break: break-word; }
 .log .line.stderr { color: var(--stderr); }
-.log .ts { color: var(--ts); margin-right: 6px; }
+.log .ts { color: var(--ts); }
 .follow { float: right; font-size: 11px; padding: 3px 8px; margin-top: 6px; background: var(--chip); color: var(--muted); }
+
+/* Copy button sits at the right edge of the "LOGS — id" header row. */
+#logs h2 { display: flex; align-items: center; gap: 8px; }
+#log-copy {
+  margin-left: auto;
+  font-size: 11px; padding: 3px 10px;
+  text-transform: none; letter-spacing: 0;
+}
 
 .muted { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
 

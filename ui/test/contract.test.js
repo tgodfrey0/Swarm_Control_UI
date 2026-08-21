@@ -98,6 +98,7 @@ const TAGS = {
   "run-submit": "button",
   "run-robots-label": "label",
   "log-follow": "button",
+  "log-copy": "button",
   "log-view": "div",
   "log-robot": "span",
   "conn": "div",
@@ -309,8 +310,17 @@ setTimeout(() => {
     // Robot grid rendered (4 cards).
     assertEq(getEl("robots").children.length, 4, "robot cards");
 
-    // Runs rendered.
+    // Runs rendered, newest first, stamped with creation time (no run id).
     assert(getEl("runs").children.length >= 1, "runs rendered");
+    const runHtml = getEl("runs").children[0].innerHTML;
+    assert(
+      /\d{2}:\d{2}:\d{2}/.test(runHtml),
+      `run entry carries HH:MM:SS timestamp (got ${runHtml})`
+    );
+    assert(!runHtml.includes("run-abc"), "run id hash not shown");
+
+    // Log copy button is wired up.
+    assert(typeof getEl("log-copy").onclick === "function", "log-copy bound");
 
     // WebSocket connected → live updates (was stuck on "connecting…").
     assert(wsCreated, "WebSocket created");

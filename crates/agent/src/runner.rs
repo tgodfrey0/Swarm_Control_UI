@@ -118,13 +118,13 @@ impl Runner {
             },
         );
 
-        println!("running task {}", run.action_name);
+        println!("Running task {}", run.action_name);
         use std::io::Write;
         let _ = std::io::stdout().flush();
         self.send(RunnerEvent::Log {
             action_id: action_id.clone(),
             stderr: false,
-            line: format!("running task {}", run.action_name),
+            line: format!("Running task {}", run.action_name),
         });
 
         let stdout = child.stdout.take().expect("piped stdout");
