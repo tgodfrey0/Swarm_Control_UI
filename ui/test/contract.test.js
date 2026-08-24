@@ -99,6 +99,7 @@ const TAGS = {
   "run-robots-label": "label",
   "log-follow": "button",
   "log-copy": "button",
+  "log-download": "button",
   "log-view": "div",
   "log-robot": "span",
   "conn": "div",
@@ -326,6 +327,7 @@ setTimeout(() => {
 
     // Log copy button is wired up.
     assert(typeof getEl("log-copy").onclick === "function", "log-copy bound");
+    assert(typeof getEl("log-download").onclick === "function", "log-download bound");
     assert(typeof getEl("log-follow").onclick === "function", "log-follow bound");
 
     // ANSI SGR codes become styled spans; raw escapes never reach the DOM.

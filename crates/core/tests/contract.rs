@@ -167,6 +167,7 @@ fn default_robot() -> swarmdeck_core::RobotView {
         simulated: true,
         adopted: false,
         connected: true,
+        connected_since_ms: 0,
         agent_version: "0.1.0".into(),
         hostname: None,
         last_seen_ms: 0,

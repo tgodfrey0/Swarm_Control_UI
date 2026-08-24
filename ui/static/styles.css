@@ -125,7 +125,8 @@ h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacin
 .card .kind { color: var(--muted); font-size: 12px; }
 .card .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .card .dot.on { background: var(--ok); }
-.card .dot.off { background: var(--bad); }
+.card .dot.dropped { background: var(--bad); }
+.card .dot.never { background: var(--muted); }
 .card .dot.sim { background: var(--accent); }
 .card .meta { font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
 .card .active { font-size: 12px; color: var(--warn); margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

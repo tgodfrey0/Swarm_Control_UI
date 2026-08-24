@@ -524,6 +524,7 @@ impl Registry {
                 .unwrap_or(entry.simulated),
             adopted: entry.adopted,
             connected,
+            connected_since_ms: entry.connected_since_ms,
             agent_version: entry.agent_version.clone(),
             hostname: entry.hostname.clone(),
             last_seen_ms: if connected { entry.last_seen_ms } else { 0 },

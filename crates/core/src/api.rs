@@ -85,6 +85,7 @@ pub struct RobotView {
     pub simulated: bool,
     pub adopted: bool,
     pub connected: bool,
+    pub connected_since_ms: u64,
     pub agent_version: String,
     pub hostname: Option<String>,
     pub last_seen_ms: u64,

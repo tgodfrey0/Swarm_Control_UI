@@ -34,6 +34,7 @@ async function init() {
   bindModal();
   bindLogFollow();
   bindLogCopy();
+  bindLogDownload();
   bindThemeToggle();
   connectWs();
 }
@@ -83,7 +84,9 @@ function renderRobots() {
     return;
   }
   for (const r of robots) {
-    const cls = r.connected ? (r.simulated ? "dot sim" : "dot on") : "dot off";
+    const cls = r.connected
+      ? (r.simulated ? "dot sim" : "dot on")
+      : (r.connected_since_ms > 0 ? "dot dropped" : "dot never");
     const active = r.active ? `<div class="active" title="${escapeHtml(r.active.action_name)}">▶ ${escapeHtml(r.active.action_name)}</div>` : "";
     const card = document.createElement("div");
     card.className = "card" + (state.selectedRobot === r.id ? " selected" : "");
@@ -94,7 +97,7 @@ function renderRobots() {
       </div>
       <div class="kind">${escapeHtml(r.kind)} · ${escapeHtml(r.id)}</div>
       <div class="meta">
-        <span>${r.connected ? `@ ${r.hostname || r.address || "?"}` : "offline"}</span>
+        <span>${r.connected ? `@ ${r.hostname || r.address || "?"}` : (r.connected_since_ms > 0 ? "dropped" : "never seen")}</span>
       </div>
       ${active}`;
     card.onclick = () => selectRobot(r.id);
@@ -432,7 +435,30 @@ function bindLogCopy() {
       ta.remove();
     }
     btn.textContent = "copied!";
-    setTimeout(() => { btn.textContent = "copy"; }, 1200);
+    setTimeout(() => { btn.textContent = "Copy"; }, 1200);
+  };
+}
+
+function bindLogDownload() {
+  const btn = $("log-download");
+  btn.onclick = () => {
+    const lines = [...$("log-view").querySelectorAll(".line")];
+    if (!lines.length) return;
+    const text = lines.map((el) => el.textContent).join("\n");
+    const robot = state.selectedRobot
+      ? (state.robots.get(state.selectedRobot)?.name || state.selectedRobot)
+      : "logs";
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const filename = `${robot}-${ts}.log`;
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 }
 
