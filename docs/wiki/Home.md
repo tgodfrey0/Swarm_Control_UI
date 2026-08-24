@@ -21,7 +21,7 @@ Prerequisites: [just](https://github.com/casey/just), Rust 1.85+ (via [rustup](h
 just build
 
 # Start sim host (WebUI at http://localhost:18082)
-./bin/swarmdeck --swarm configs/sim
+./bin/swarmdeck --config configs/sim/swarm.toml
 
 # Start two simulated robots
 ./bin/swarmdeck-agent --config configs/sim/agent-1.toml

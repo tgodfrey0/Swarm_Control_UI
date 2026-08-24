@@ -76,22 +76,18 @@ enum Command {
     },
     /// Validate config files without starting anything.
     Config {
-        /// Swarm config directory (contains {swarm}/swarm.toml).
+        /// Swarm config file (TOML).
         #[arg(long)]
-        swarm: PathBuf,
-        #[arg(long)]
-        config: Option<PathBuf>,
+        config: PathBuf,
         /// Directory of shared robot-type TOML files.
         #[arg(long, default_value = "robots")]
         robot_types: PathBuf,
     },
     /// SSH-provision the agent onto robots and install the systemd unit.
     Provision {
-        /// Swarm config directory (contains {swarm}/swarm.toml).
+        /// Swarm config file (TOML).
         #[arg(long)]
-        swarm: PathBuf,
-        #[arg(long)]
-        config: Option<PathBuf>,
+        config: PathBuf,
         /// Directory of shared robot-type TOML files.
         #[arg(long, default_value = "robots")]
         robot_types: PathBuf,
@@ -145,13 +141,11 @@ async fn main() -> anyhow::Result<()> {
             follow,
         } => cmd_logs(&client, &robot, tail, follow).await?,
         Command::Config {
-            swarm,
             config,
             robot_types,
         } => {
-            let swarm_file = config.unwrap_or_else(|| swarm.join("swarm.toml"));
             let types_dir = Some(robot_types);
-            let cfg = swarmdeck_core::SwarmConfig::from_files(&swarm_file, types_dir.as_deref())?;
+            let cfg = swarmdeck_core::SwarmConfig::from_files(&config, types_dir.as_deref())?;
             println!(
                 "config OK: {} controller, {} robot types, {} robots",
                 cfg.controller.name,
@@ -160,14 +154,12 @@ async fn main() -> anyhow::Result<()> {
             );
         }
         Command::Provision {
-            swarm,
             config,
             robot_types,
             robots,
             user,
         } => {
-            let swarm_file = config.unwrap_or_else(|| swarm.join("swarm.toml"));
-            provision::provision(&swarm_file, Some(&robot_types), &robots, user.as_deref())?
+            provision::provision(&config, Some(&robot_types), &robots, user.as_deref())?
         }
     }
     Ok(())

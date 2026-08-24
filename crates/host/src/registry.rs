@@ -37,8 +37,7 @@ pub struct Registry {
     pub actions_meta: RwLock<HashMap<String, ActionMeta>>,
     pub run_store: RunStore,
     pub events: EventBus,
-    /// Path of the swarm file passed at startup (`--config`, else
-    /// `{swarm}/swarm.toml`). Reloaded on SIGHUP.
+    /// Path of the swarm config file passed at startup. Reloaded on SIGHUP.
     pub swarm_file: PathBuf,
     pub types_dir: Option<PathBuf>,
     pending_logs: Mutex<HashMap<String, Vec<LogLine>>>,

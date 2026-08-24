@@ -139,6 +139,6 @@ robot_id = "sim-01"
 
 ## Host Defaults
 
-- `--swarm configs/lab` (swarm config directory)
+- `--config configs/lab/swarm.toml` (swarm config file)
 - `--robot-types robots` (shared robot type definitions)
 - Override with `--config` / `--robot-types` flags

@@ -3,7 +3,7 @@
 #
 # Start it:
 #   just build
-#   ./bin/swarmdeck --swarm configs/sim
+#   ./bin/swarmdeck --config configs/sim/swarm.toml
 # Then, in two other terminals:
 #   ./bin/swarmdeck-agent --config configs/sim/agent-1.toml
 #   ./bin/swarmdeck-agent --config configs/sim/agent-2.toml

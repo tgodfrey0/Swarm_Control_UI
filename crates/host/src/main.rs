@@ -19,12 +19,9 @@ use registry::Registry;
 #[derive(Debug, Parser)]
 #[command(name = "swarmdeck", about = "SwarmDeck control host")]
 struct Args {
-    /// Swarm config directory (contains {swarm}/swarm.toml).
+    /// Swarm configuration (TOML).
     #[arg(long)]
-    swarm: PathBuf,
-    /// Override: swarm configuration (TOML) instead of {swarm}/swarm.toml.
-    #[arg(long)]
-    config: Option<PathBuf>,
+    config: PathBuf,
     /// Directory of shared robot-type TOML files.
     #[arg(long, default_value = "robots")]
     robot_types: PathBuf,
@@ -53,7 +50,7 @@ fn setup_logging(name: &str) -> WorkerGuard {
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
-    let swarm_file = args.config.unwrap_or_else(|| args.swarm.join("swarm.toml"));
+    let swarm_file = args.config;
     let types_dir = Some(args.robot_types);
     let cfg = SwarmConfig::from_files(&swarm_file, types_dir.as_deref())?;
 

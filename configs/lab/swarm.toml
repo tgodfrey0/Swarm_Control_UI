@@ -2,7 +2,7 @@
 # provisioner to reach them for installing the agent).
 # Robot types are shared and live in robots/.
 # Start the host with:
-#   swarmdeck --swarm configs/lab
+#   swarmdeck --config configs/lab/swarm.toml
 
 [controller]
 name = "lab-1"

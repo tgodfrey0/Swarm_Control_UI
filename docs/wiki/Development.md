@@ -28,10 +28,10 @@ Binaries are run directly from `bin/`:
 
 ```sh
 # Control host (WebUI at localhost:8080)
-./bin/swarmdeck --swarm configs/lab
+./bin/swarmdeck --config configs/lab/swarm.toml
 
 # Simulated swarm (WebUI at localhost:18082)
-./bin/swarmdeck --swarm configs/sim
+./bin/swarmdeck --config configs/sim/swarm.toml
 
 # Robot agent
 ./bin/swarmdeck-agent --config /etc/swarm-agent/agent.toml

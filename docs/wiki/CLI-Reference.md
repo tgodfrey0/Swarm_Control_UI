@@ -81,7 +81,7 @@ swarmdeck-cli logs tb-01 --follow
 Validate a swarm's configuration.
 
 ```sh
-swarmdeck-cli config --swarm configs/lab
+swarmdeck-cli config --config configs/lab/swarm.toml
 ```
 
 ### `provision`
@@ -90,7 +90,7 @@ SSH-provision robots with the agent binary.
 
 ```sh
 SWARMDECK_AGENT_BIN=target/aarch64-unknown-linux-musl/release/swarmdeck-agent \
-  swarmdeck-cli provision --swarm configs/lab --user pi
+  swarmdeck-cli provision --config configs/lab/swarm.toml --user pi
 
 # Specific robots
 SWARMDECK_CONTROLLER_ENDPOINT=100.64.0.1:50051 \

@@ -32,7 +32,7 @@ Prerequisites: [just](https://github.com/casey/just) (build/test tasks), Rust 1.
 just build
 
 # Start sim host (WebUI at http://localhost:18082)
-./bin/swarmdeck --swarm configs/sim
+./bin/swarmdeck --config configs/sim/swarm.toml
 
 # Start two simulated robots (each in its own terminal)
 ./bin/swarmdeck-agent --config configs/sim/agent-1.toml
@@ -74,9 +74,9 @@ just build
 The CLI provisions robots over SSH — copies the binary, writes the config, and installs the systemd unit:
 
 ```sh
-./bin/swarmdeck-cli provision --swarm configs/lab                        # all robots in configs/lab
-./bin/swarmdeck-cli provision --swarm configs/lab --robots tb-01,tb-02   # specific robots only
-./bin/swarmdeck-cli provision --swarm configs/lab --user pi              # non-root SSH user
+./bin/swarmdeck-cli provision --config configs/lab/swarm.toml                        # all robots in configs/lab
+./bin/swarmdeck-cli provision --config configs/lab/swarm.toml --robots tb-01,tb-02   # specific robots only
+./bin/swarmdeck-cli provision --config configs/lab/swarm.toml --user pi              # non-root SSH user
 ```
 
 Environment variables:

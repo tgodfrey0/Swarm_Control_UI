@@ -21,7 +21,7 @@ For each configured robot (with `address` and `simulated = false`):
 ```sh
 # Provision all robots in a swarm
 SWARMDECK_AGENT_BIN=target/aarch64-unknown-linux-musl/release/swarmdeck-agent \
-  swarmdeck-cli provision --swarm configs/lab --user pi
+  swarmdeck-cli provision --config configs/lab/swarm.toml --user pi
 
 # Specific robots only
 SWARMDECK_CONTROLLER_ENDPOINT=100.64.0.1:50051 \
@@ -81,5 +81,5 @@ Robots are skipped if:
 ## Example
 
 ```sh
-./bin/swarmdeck-cli provision --swarm configs/lab --user pi --robots tb-01
+./bin/swarmdeck-cli provision --config configs/lab/swarm.toml --user pi --robots tb-01
 ```
