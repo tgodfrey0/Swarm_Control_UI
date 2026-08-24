@@ -84,17 +84,17 @@ pipeline {
             parallel {
                 stage('Agent aarch64') {
                     steps {
-                        sh 'just compile-arm'
+                        sh 'just cross-compile-arm'
                     }
                 }
                 stage('Agent armv7') {
                     steps {
-                        sh 'just compile-armv7'
+                        sh 'just cross-compile-armv7'
                     }
                 }
                 stage('Agent x86_64') {
                     steps {
-                        sh 'just compile-x86_64'
+                        sh 'just cross-compile-x86_64'
                     }
                 }
             }
