@@ -46,6 +46,11 @@ impl SwarmConfig {
         let text = std::fs::read_to_string(swarm)?;
         let mut cfg: Self = toml::from_str(&text).map_err(ConfigError::Toml)?;
         if let Some(dir) = types_dir {
+            if !dir.exists() {
+                return Err(ConfigError::MissingTypesDir {
+                    path: dir.display().to_string(),
+                });
+            }
             for entry in std::fs::read_dir(dir)? {
                 let entry = entry?;
                 let path = entry.path();

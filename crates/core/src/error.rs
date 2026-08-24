@@ -44,6 +44,11 @@ pub enum ConfigError {
         "agent config is missing `robot_id` (set it in the per-agent TOML or pass --robot-id)"
     )]
     MissingRobotId,
+
+    #[error(
+        "robot types directory '{path}' does not exist; create it or pass --robot-types"
+    )]
+    MissingTypesDir { path: String },
 }
 
 #[derive(Debug, Error)]
