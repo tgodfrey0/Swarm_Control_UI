@@ -158,9 +158,7 @@ async fn main() -> anyhow::Result<()> {
             robot_types,
             robots,
             user,
-        } => {
-            provision::provision(&config, Some(&robot_types), &robots, user.as_deref())?
-        }
+        } => provision::provision(&config, Some(&robot_types), &robots, user.as_deref())?,
     }
     Ok(())
 }

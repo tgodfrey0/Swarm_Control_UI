@@ -40,7 +40,9 @@ pub enum ConfigError {
     #[error("agent config `extends` cycle at '{path}'")]
     ConfigCycle { path: String },
 
-    #[error("agent config is missing `robot_id` (set it in the per-agent TOML or pass --robot-id)")]
+    #[error(
+        "agent config is missing `robot_id` (set it in the per-agent TOML or pass --robot-id)"
+    )]
     MissingRobotId,
 }
 
