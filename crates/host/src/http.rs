@@ -19,6 +19,7 @@
 //!   GET /            -> index.html
 //!   GET /static/*    -> ui/static assets
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::extract::{
@@ -35,6 +36,18 @@ use swarmdeck_core::{ActionsView, AdoptRequest, Event, RunRequest, RunResponse, 
 
 use crate::dispatch::Dispatcher;
 use crate::registry::Registry;
+
+pub(crate) fn ui_dir() -> PathBuf {
+    let cwd = std::path::Path::new("ui");
+    if cwd.exists() {
+        return cwd.to_path_buf();
+    }
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.join("../ui")))
+        .filter(|p| p.exists())
+        .unwrap_or_else(|| cwd.to_path_buf())
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -69,9 +82,7 @@ fn err<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
 }
 
 async fn index() -> Result<impl IntoResponse, StatusCode> {
-    // Pure static UI served from disk with no-store so UI changes need no
-    // backend rebuild and browsers never serve stale HTML.
-    let file = std::path::Path::new("ui/index.html");
+    let file = ui_dir().join("index.html");
     let bytes = std::fs::read(file).map_err(|_| StatusCode::NOT_FOUND)?;
     let mut response = (StatusCode::OK, bytes).into_response();
     response
@@ -86,7 +97,7 @@ async fn index() -> Result<impl IntoResponse, StatusCode> {
 /// Serve `ui/static/*` with a no-store cache header so browsers always pick
 /// up updated UI files.
 async fn static_asset(Path(path): Path<String>) -> Result<impl IntoResponse, StatusCode> {
-    let base = std::path::Path::new("ui/static");
+    let base = ui_dir().join("static");
     let file = base.join(&path);
     if !file.starts_with(base) {
         return Err(StatusCode::FORBIDDEN);

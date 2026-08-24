@@ -62,6 +62,7 @@ async fn main() -> anyhow::Result<()> {
         robots = cfg.robots.len(),
         "swarm config loaded"
     );
+    tracing::info!(ui_dir = %http::ui_dir().display(), "serving WebUI");
 
     let registry = Registry::new(cfg.clone(), swarm_file, types_dir);
     let dispatcher = Dispatcher::new(registry.clone());
