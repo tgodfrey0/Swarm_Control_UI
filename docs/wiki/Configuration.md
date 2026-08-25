@@ -88,6 +88,52 @@ timeout_sec = 300
 swarmdeck-cli run start_trial --all --yes
 ```
 
+## Workflows
+
+Workflows are multi-step sequences composed from existing actions. Each step
+references a standalone action (robot-type or swarm-level) and targets a set
+of robots. Steps run sequentially — the engine waits for all targeted robots
+to finish each step before proceeding.
+
+```toml
+[workflows.deploy_fleet]
+description = "Arm, takeoff, and start flocking controller"
+steps = [
+  { action = "sim-uav.arm",       targets = { types = ["sim-uav"] } },
+  { action = "sim-uav.takeoff",   targets = { types = ["sim-uav"] } },
+  { action = "sim-uav.run_controller", targets = { types = ["sim-uav"] } },
+]
+```
+
+### Step options
+
+| Key | Meaning |
+|-----|---------|
+| `action` | Must reference an existing action (`<type>.<action>` or swarm action name) |
+| `targets` | Robot target selector (same as `RunRequest.targets`) |
+| `continue_on_error` | `true` = run next step regardless (`;` semantics); `false` = abort on failure (`&&` semantics, default) |
+
+### Failure handling
+
+Each step defaults to `&&` semantics (abort on failure). Set
+`continue_on_error = true` on a step for `;` semantics (always proceed).
+A workflow-level `on_failure` provides the default for all steps:
+
+```toml
+[workflows.safe_deploy]
+on_failure = "continue"   # all steps default to ; semantics
+steps = [
+  { action = "sim-uav.arm",       targets = { types = ["sim-uav"] } },
+  { action = "sim-uav.takeoff",   targets = { types = ["sim-uav"] } },
+  { action = "sim.whoami",        targets = { types = ["sim-uav"] }, continue_on_error = true },
+]
+```
+
+```sh
+swarmdeck-cli workflow deploy_fleet
+swarmdeck-cli workflow deploy_fleet --yes
+```
+
 ## Template Placeholders
 
 | Placeholder | Value |

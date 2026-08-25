@@ -97,6 +97,16 @@ enum Command {
         #[arg(long)]
         user: Option<String>,
     },
+    /// Run a named workflow (multi-step action sequence).
+    Workflow {
+        /// Workflow name (must be defined in [workflows] of swarm.toml).
+        name: String,
+        /// Skip the interactive confirmation for dangerous steps.
+        #[arg(long)]
+        yes: bool,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[tokio::main]
@@ -159,6 +169,11 @@ async fn main() -> anyhow::Result<()> {
             robots,
             user,
         } => provision::provision(&config, Some(&robot_types), &robots, user.as_deref())?,
+        Command::Workflow {
+            name,
+            yes,
+            json,
+        } => cmd_workflow(&client, &name, yes, json).await?,
     }
     Ok(())
 }
@@ -284,6 +299,31 @@ async fn cmd_run(
     if resp.targeted.is_empty() && (resp.busy.is_empty() && resp.offline.is_empty()) {
         println!("  (no robots matched)");
     }
+    Ok(())
+}
+
+async fn cmd_workflow(
+    client: &Client,
+    name: &str,
+    yes: bool,
+    json: bool,
+) -> anyhow::Result<()> {
+    let resp = match client.dispatch_workflow(name, false).await {
+        Ok(resp) => resp,
+        Err(ClientError::ConfirmRequired { message, .. }) => {
+            if !yes {
+                println!("{message}");
+                confirm(false, "run anyway?").await?;
+            }
+            client.dispatch_workflow(name, true).await?
+        }
+        Err(e) => return Err(e.into()),
+    };
+    if json {
+        println!("{}", serde_json::to_string_pretty(&resp)?);
+        return Ok(());
+    }
+    println!("workflow {} → run {}", name, resp.run_id);
     Ok(())
 }
 

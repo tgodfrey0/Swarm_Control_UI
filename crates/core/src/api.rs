@@ -51,6 +51,13 @@ pub struct StopRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowRunRequest {
+    pub workflow: String,
+    #[serde(default)]
+    pub confirm: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdoptRequest {
     pub kind: String,
     #[serde(default)]
@@ -58,11 +65,13 @@ pub struct AdoptRequest {
 }
 
 /// Dispatchable actions served to the WebUI/CLI: robot-type actions as
-/// `"<type>.<action>"` refs, plus swarm-level `[actions]` by bare name.
+/// `"<type>.<action>"` refs, plus swarm-level `[actions]` by bare name,
+/// plus named workflows.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionsView {
     pub robot_type: Vec<String>,
     pub swarm: Vec<String>,
+    pub workflows: Vec<String>,
 }
 
 /// Summary of the loaded swarm config, served to UI/CLI clients.
@@ -133,6 +142,18 @@ pub struct RunView {
     pub action: String,
     pub created_ms: u64,
     pub robots: Vec<(String, RunRobotStatus)>,
+    /// Present when this run is part of a workflow.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow: Option<WorkflowRunInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowRunInfo {
+    pub workflow_name: String,
+    pub current_step: usize,
+    pub total_steps: usize,
+    pub step_action: String,
+    pub step_run_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

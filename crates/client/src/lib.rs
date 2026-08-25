@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use swarmdeck_core::{
     ActionsView, AdoptRequest, ApiTargets, ConfigView, Event, LogLine, RobotView, RunRequest,
-    RunResponse, RunView, StopRequest,
+    RunResponse, RunView, StopRequest, WorkflowRunRequest,
 };
 
 /// A ready-to-use client for the SwarmDeck host API.
@@ -127,6 +127,52 @@ impl Client {
             },
         )
         .await
+    }
+
+    /// Dispatch a named workflow. Returns `Err(ClientError::ConfirmRequired { .. })`
+    /// when the host requires operator confirmation.
+    pub async fn dispatch_workflow(
+        &self,
+        name: &str,
+        confirm: bool,
+    ) -> Result<RunResponse, ClientError> {
+        let url = self.url("/api/workflow");
+        let body = WorkflowRunRequest {
+            workflow: name.to_string(),
+            confirm,
+        };
+        let resp = self
+            .http
+            .post(url.clone())
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ClientError::Transport {
+                url: url.clone(),
+                source: e,
+            })?;
+        let status = resp.status().as_u16();
+        let text = resp.text().await.map_err(|e| ClientError::Transport {
+            url: url.clone(),
+            source: e,
+        })?;
+        if status == 200 {
+            return serde_json::from_str(&text).map_err(|e| ClientError::Json {
+                url: url.clone(),
+                message: e.to_string(),
+            });
+        }
+        if text.contains("confirm with confirm=true") {
+            return Err(ClientError::ConfirmRequired {
+                action: name.to_string(),
+                message: text.trim().to_string(),
+            });
+        }
+        Err(ClientError::Http {
+            url,
+            status,
+            body: text,
+        })
     }
 
     pub async fn adopt(

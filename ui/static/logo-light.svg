@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56">
+  <defs>
+    <polygon id="hn" points="0,-7 6.06,-3.5 6.06,3.5 0,7 -6.06,3.5 -6.06,-3.5" />
+    <polygon id="hi" points="0,-4 3.46,-2 3.46,2 0,4 -3.46,2 -3.46,-2" />
+  </defs>
+
+  <!-- Hex network (scaled to ~44px tall) -->
+  <g transform="translate(26, 28) scale(0.55)">
+    <g stroke="#1f2328" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <line x1="0" y1="0" x2="0" y2="-27"/>
+      <line x1="0" y1="0" x2="23.4" y2="-13.5"/>
+      <line x1="0" y1="0" x2="23.4" y2="13.5"/>
+      <line x1="0" y1="0" x2="0" y2="27"/>
+      <line x1="0" y1="0" x2="-23.4" y2="13.5"/>
+      <line x1="0" y1="0" x2="-23.4" y2="-13.5"/>
+    </g>
+
+    <g fill="#1f2328">
+      <g transform="translate(0, -27)"><use href="#hn"/><use href="#hi" fill="#d1d9e0"/></g>
+      <g transform="translate(23.4, -13.5)"><use href="#hn"/><use href="#hi" fill="#d1d9e0"/></g>
+      <g transform="translate(23.4, 13.5)"><use href="#hn"/><use href="#hi" fill="#d1d9e0"/></g>
+      <g transform="translate(0, 27)"><use href="#hn"/><use href="#hi" fill="#d1d9e0"/></g>
+      <g transform="translate(-23.4, 13.5)"><use href="#hn"/><use href="#hi" fill="#d1d9e0"/></g>
+      <g transform="translate(-23.4, -13.5)"><use href="#hn"/><use href="#hi" fill="#d1d9e0"/></g>
+    </g>
+
+    <g>
+      <polygon points="0,-8.7 7.54,-4.4 7.54,4.4 0,8.7 -7.54,4.4 -7.54,-4.4" fill="#1d70b8" />
+      <polygon points="0,-6.2 5.37,-3.1 5.37,3.1 0,6.2 -5.37,3.1 -5.37,-3.1" fill="transparent" />
+      <polygon points="0,-4 3.46,-2 3.46,2 0,4 -3.46,2 -3.46,-2" fill="#1d70b8" />
+    </g>
+  </g>
+
+  <!-- "SwarmDeck" text -->
+  <text x="58" y="35" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="600" fill="#1f2328">SwarmDeck</text>
+</svg>

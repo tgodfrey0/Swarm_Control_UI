@@ -168,6 +168,7 @@ mod tests {
                 ("site".into(), "lab-1".into()),
                 ("ns".into(), "swarm".into()),
             ]),
+            workflows: BTreeMap::new(),
             robots: vec![
                 RobotConfig {
                     id: "tb-01".into(),
@@ -282,5 +283,49 @@ type = "x"
         )
         .unwrap();
         assert_eq!(parsed.vars.get("site").map(String::as_str), Some("lab-1"));
+    }
+
+    #[test]
+    fn workflow_step_references_existing_action() {
+        use crate::api::ApiTargets;
+        use crate::config::{WorkflowConfig, WorkflowStep};
+        let mut c = cfg();
+        c.workflows.insert(
+            "test_wf".into(),
+            WorkflowConfig {
+                description: None,
+                steps: vec![WorkflowStep {
+                    action: "turtlebot3.bringup".into(),
+                    targets: ApiTargets::All,
+                    continue_on_error: false,
+                }],
+                on_failure: Default::default(),
+            },
+        );
+        assert!(c.validate().is_ok());
+    }
+
+    #[test]
+    fn workflow_step_rejects_unknown_action() {
+        use crate::api::ApiTargets;
+        use crate::config::{WorkflowConfig, WorkflowStep};
+        let mut c = cfg();
+        c.workflows.insert(
+            "bad_wf".into(),
+            WorkflowConfig {
+                description: None,
+                steps: vec![WorkflowStep {
+                    action: "turtlebot3.nonexistent".into(),
+                    targets: ApiTargets::All,
+                    continue_on_error: false,
+                }],
+                on_failure: Default::default(),
+            },
+        );
+        let err = c.validate().unwrap_err();
+        assert!(
+            matches!(err, crate::ConfigError::UnknownWorkflowAction { .. }),
+            "{err}"
+        );
     }
 }

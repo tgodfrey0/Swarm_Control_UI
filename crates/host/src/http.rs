@@ -33,7 +33,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 
-use swarmdeck_core::{ActionsView, AdoptRequest, Event, RunRequest, RunResponse, StopRequest};
+use swarmdeck_core::{ActionsView, AdoptRequest, Event, RunRequest, RunResponse, StopRequest, WorkflowRunRequest};
 
 use crate::dispatch::Dispatcher;
 use crate::registry::Registry;
@@ -69,6 +69,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/runs", get(list_runs))
         .route("/api/runs/{run_id}", get(get_run))
         .route("/api/run", post(run_action))
+        .route("/api/workflow", post(run_workflow))
         .route("/api/stop", post(stop_action))
         .route("/api/clear", post(clear_all))
         .route("/api/adopt/{robot}", post(adopt_robot))
@@ -150,7 +151,13 @@ async fn list_actions(State(state): State<AppState>) -> Json<ActionsView> {
     robot_type.sort();
     let mut swarm: Vec<String> = cfg.actions.keys().cloned().collect();
     swarm.sort();
-    Json(ActionsView { robot_type, swarm })
+    let mut workflows: Vec<String> = cfg.workflows.keys().cloned().collect();
+    workflows.sort();
+    Json(ActionsView {
+        robot_type,
+        swarm,
+        workflows,
+    })
 }
 
 async fn list_runs(State(state): State<AppState>) -> Json<Vec<swarmdeck_core::RunView>> {
@@ -211,6 +218,16 @@ async fn run_action(
     Json(req): Json<RunRequest>,
 ) -> ApiResult<Json<RunResponse>> {
     match state.dispatcher.run(req).await {
+        Ok(resp) => Ok(Json(resp)),
+        Err(e) => Err(err(e)),
+    }
+}
+
+async fn run_workflow(
+    State(state): State<AppState>,
+    Json(req): Json<WorkflowRunRequest>,
+) -> ApiResult<Json<RunResponse>> {
+    match state.dispatcher.run_workflow(&req.workflow, req.confirm).await {
         Ok(resp) => Ok(Json(resp)),
         Err(e) => Err(err(e)),
     }

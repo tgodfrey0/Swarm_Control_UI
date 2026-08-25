@@ -27,6 +27,23 @@ command = "echo dangerous trial on {{robot_id}}"
 timeout_sec = 30
 dangerous = true
 
+# Workflows: multi-step sequences composed from existing actions.
+# Each step must reference a standalone action (robot-type or swarm-level).
+
+[workflows.quick_test]
+description = "Echo test on all sims, then whoami"
+steps = [
+  { action = "sim.echo", targets = { types = ["sim"] } },
+  { action = "sim.whoami", targets = { types = ["sim"] } },
+]
+
+[workflows.mixed_failure]
+description = "Trial then whoami — whoami runs even if trial fails"
+steps = [
+  { action = "trial", targets = { types = ["sim"] } },
+  { action = "sim.whoami", targets = { types = ["sim"] }, continue_on_error = true },
+]
+
 [[robots]]
 id = "sim-01"
 name = "sim-robot-1"

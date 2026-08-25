@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
+use crate::api::ApiTargets;
 use crate::error::{ConfigError, Result};
 
 /// Top-level swarm configuration read by the control host.
@@ -20,6 +21,9 @@ pub struct SwarmConfig {
     /// `vars` entry wins per key.
     #[serde(default)]
     pub vars: BTreeMap<String, String>,
+    /// Named workflows: multi-step sequences composed from existing actions.
+    #[serde(default)]
+    pub workflows: BTreeMap<String, WorkflowConfig>,
     #[serde(default)]
     pub robots: Vec<RobotConfig>,
 }
@@ -91,7 +95,30 @@ impl SwarmConfig {
                 });
             }
         }
+        // Validate that every workflow step references an existing action.
+        for (wf_name, wf) in &self.workflows {
+            for (i, step) in wf.steps.iter().enumerate() {
+                if !self.action_exists(&step.action) {
+                    return Err(ConfigError::UnknownWorkflowAction {
+                        workflow: wf_name.clone(),
+                        step: i + 1,
+                        action: step.action.clone(),
+                    });
+                }
+            }
+        }
         Ok(())
+    }
+
+    /// Check whether an action reference resolves to an existing action.
+    fn action_exists(&self, action: &str) -> bool {
+        if let Some((ty, name)) = action.split_once('.') {
+            self.robot_types
+                .get(ty)
+                .is_some_and(|t| t.actions.contains_key(name))
+        } else {
+            self.actions.contains_key(action)
+        }
     }
 
     /// Merge an unclaimed robot (phoned home with a valid id_code but not yet
@@ -189,6 +216,42 @@ pub struct ActionConfig {
 
 fn default_concurrency() -> usize {
     1
+}
+
+// ---------------------------------------------------------------------------
+// Workflows
+// ---------------------------------------------------------------------------
+
+/// A named sequence of actions dispatched across the swarm.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkflowConfig {
+    pub description: Option<String>,
+    pub steps: Vec<WorkflowStep>,
+    /// Workflow-level default for failure handling (overridden per-step).
+    #[serde(default)]
+    pub on_failure: WorkflowOnFailure,
+}
+
+/// One step inside a [`WorkflowConfig`]. The `action` must reference an
+/// existing standalone action (either `<type>.<action>` or a swarm action name).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkflowStep {
+    pub action: String,
+    pub targets: ApiTargets,
+    /// `true` = `;` semantics: run the next step regardless of this step's outcome.
+    /// `false` / absent = `&&` semantics: abort the workflow on failure.
+    #[serde(default)]
+    pub continue_on_error: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkflowOnFailure {
+    #[default]
+    Abort,
+    Continue,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

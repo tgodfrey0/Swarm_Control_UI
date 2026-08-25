@@ -5,20 +5,31 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use tokio::sync::RwLock;
+use tokio::sync::{broadcast, RwLock};
 
 use swarmdeck_core::{
     resolve_command, ConfigError, Event, Result as CoreResult, RunRequest, RunResponse,
-    RunRobotStatus, RunView,
+    RunRobotStatus, RunView, WorkflowOnFailure, WorkflowRunInfo,
 };
 use swarmdeck_proto::v1::{command::Command as CommandMsg, Command, RunAction, StopAction};
 
 use crate::registry::{now_ms, Registry};
 
 /// In-memory store of batch runs (a batch = one action fanned out to N robots).
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct RunStore {
     inner: Arc<RwLock<BTreeMap<String, RunGroup>>>,
+    step_done: broadcast::Sender<()>,
+}
+
+impl Default for RunStore {
+    fn default() -> Self {
+        let (tx, _) = broadcast::channel(64);
+        Self {
+            inner: Arc::new(RwLock::new(BTreeMap::new())),
+            step_done: tx,
+        }
+    }
 }
 
 pub struct RunGroup {
@@ -26,10 +37,23 @@ pub struct RunGroup {
     pub action: String,
     pub created_ms: u64,
     pub robots: BTreeMap<String, RunRobotStatus>,
+    /// Present when this run is part of a workflow.
+    pub workflow_name: Option<String>,
+    pub current_step: usize,
+    pub total_steps: usize,
+    pub step_run_ids: Vec<String>,
+    pub current_step_action: String,
 }
 
 impl RunGroup {
     pub fn view(&self) -> RunView {
+        let workflow = self.workflow_name.as_ref().map(|name| WorkflowRunInfo {
+            workflow_name: name.clone(),
+            current_step: self.current_step,
+            total_steps: self.total_steps,
+            step_action: self.current_step_action.clone(),
+            step_run_id: self.step_run_ids.last().cloned().unwrap_or_default(),
+        });
         RunView {
             run_id: self.run_id.clone(),
             action: self.action.clone(),
@@ -39,6 +63,7 @@ impl RunGroup {
                 .iter()
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect(),
+            workflow,
         }
     }
 }
@@ -74,9 +99,48 @@ impl RunStore {
         robot: &str,
         status: RunRobotStatus,
     ) -> Option<RunView> {
+        let is_terminal = status.is_terminal();
         let mut inner = self.inner.write().await;
         let group = inner.get_mut(run_id)?;
         group.robots.insert(robot.to_string(), status);
+        let view = group.view();
+        drop(inner);
+        if is_terminal {
+            let _ = self.step_done.send(());
+        }
+        Some(view)
+    }
+
+    /// Wait until all robots in the given run reach a terminal state.
+    pub async fn wait_for_terminal(&self, run_id: &str) {
+        let mut recv = self.step_done.subscribe();
+        loop {
+            {
+                let inner = self.inner.read().await;
+                if let Some(group) = inner.get(run_id) {
+                    let all_done = group.robots.values().all(|s| s.is_terminal());
+                    if all_done && !group.robots.is_empty() {
+                        return;
+                    }
+                }
+            }
+            let _ = recv.recv().await;
+        }
+    }
+
+    /// Update the workflow progress fields on a run.
+    pub async fn update_workflow_step(
+        &self,
+        run_id: &str,
+        current_step: usize,
+        step_action: &str,
+        step_run_id: &str,
+    ) -> Option<RunView> {
+        let mut inner = self.inner.write().await;
+        let group = inner.get_mut(run_id)?;
+        group.current_step = current_step;
+        group.current_step_action = step_action.to_string();
+        group.step_run_ids.push(step_run_id.to_string());
         Some(group.view())
     }
 
@@ -87,6 +151,7 @@ impl RunStore {
 }
 
 /// High-level runner over the registry's robot command channels.
+#[derive(Clone)]
 pub struct Dispatcher {
     pub registry: Arc<Registry>,
 }
@@ -129,6 +194,11 @@ impl Dispatcher {
             action: resolved.action_name.clone(),
             created_ms: now_ms(),
             robots: BTreeMap::new(),
+            workflow_name: None,
+            current_step: 0,
+            total_steps: 0,
+            step_run_ids: Vec::new(),
+            current_step_action: String::new(),
         };
 
         let background = req.background || resolved.action.background;
@@ -289,5 +359,131 @@ impl Dispatcher {
     /// Release an adopted robot (see `Registry::release`).
     pub async fn release(&self, id: &str) -> CoreResult<()> {
         self.registry.release(id).await
+    }
+
+    /// Dispatch a named workflow: execute its steps sequentially, waiting for
+    /// all targeted robots to finish each step before proceeding to the next.
+    pub async fn run_workflow(&self, name: &str, confirm: bool) -> CoreResult<RunResponse> {
+        let cfg = self.registry.config.read().await.clone();
+        let workflow = cfg
+            .workflows
+            .get(name)
+            .ok_or_else(|| ConfigError::UnknownWorkflow {
+                name: name.to_string(),
+            })?
+            .clone();
+
+        let run_id = uuid::Uuid::new_v4().simple().to_string();
+        let total_steps = workflow.steps.len();
+
+        let group = RunGroup {
+            run_id: run_id.clone(),
+            action: name.to_string(),
+            created_ms: now_ms(),
+            robots: BTreeMap::new(),
+            workflow_name: Some(name.to_string()),
+            current_step: 0,
+            total_steps,
+            step_run_ids: Vec::new(),
+            current_step_action: String::new(),
+        };
+        self.registry.run_store.insert(group).await;
+        self.registry.events.publish(Event::Runs {
+            runs: self.registry.run_store.recent(20).await,
+        });
+
+        let wf_name = name.to_string();
+        let wf_name_clone = wf_name.clone();
+
+        // Spawn a background task that drives the workflow steps sequentially.
+        let dispatcher = self.clone();
+        let registry = self.registry.clone();
+        let steps = workflow.steps.clone();
+        let on_failure = workflow.on_failure.clone();
+        let wf_run_id = run_id.clone();
+
+        tokio::spawn(async move {
+            for (i, step) in steps.iter().enumerate() {
+                let req = RunRequest {
+                    action: step.action.clone(),
+                    targets: step.targets.clone(),
+                    confirm,
+                    timeout_sec: None,
+                    background: false,
+                };
+
+                let resp = match dispatcher.run(req).await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        tracing::warn!(
+                            workflow = %wf_name_clone,
+                            step = i + 1,
+                            error = %e,
+                            "workflow step dispatch failed"
+                        );
+                        if on_failure == WorkflowOnFailure::Abort {
+                            break;
+                        }
+                        continue;
+                    }
+                };
+
+                // Update workflow progress with the step's action and run_id.
+                if let Some(run) = registry
+                    .run_store
+                    .update_workflow_step(
+                        &wf_run_id,
+                        i + 1,
+                        &resp.action,
+                        &resp.run_id,
+                    )
+                    .await
+                {
+                    registry.events.publish(Event::Run { run });
+                }
+
+                // Wait for all robots targeted by this step to finish.
+                // The sub-run's run_id tracks this step's batch.
+                registry.run_store.wait_for_terminal(&resp.run_id).await;
+
+                // Check if any robot failed in this step.
+                let step_failed = {
+                    let inner = registry.run_store.inner.read().await;
+                    inner
+                        .get(&resp.run_id)
+                        .map(|g| {
+                            g.robots
+                                .values()
+                                .any(|s| matches!(s, RunRobotStatus::Failed { .. }))
+                        })
+                        .unwrap_or(false)
+                };
+
+                if step_failed && !step.continue_on_error
+                    && on_failure == WorkflowOnFailure::Abort
+                {
+                    break;
+                }
+            }
+
+            // Mark workflow as complete (current_step = total_steps).
+            if let Some(_run) = registry
+                .run_store
+                .update_workflow_step(&wf_run_id, total_steps, "", "")
+                .await
+            {
+                registry.events.publish(Event::Runs {
+                    runs: registry.run_store.recent(20).await,
+                });
+            }
+        });
+
+        Ok(RunResponse {
+            run_id,
+            action: name.to_string(),
+            targeted: Vec::new(),
+            busy: Vec::new(),
+            offline: Vec::new(),
+        })
     }
 }

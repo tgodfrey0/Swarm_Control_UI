@@ -18,6 +18,7 @@ fn actions_view_is_snake_case() {
     let v = to_value(&ActionsView {
         robot_type: vec!["sim.echo".into()],
         swarm: vec!["trial".into()],
+        workflows: vec![],
     });
     assert_eq!(
         v["robot_type"],
@@ -181,5 +182,6 @@ fn default_run() -> RunView {
         action: "sim.echo".into(),
         created_ms: 0,
         robots: vec![],
+        workflow: None,
     }
 }

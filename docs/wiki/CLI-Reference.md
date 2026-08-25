@@ -97,6 +97,21 @@ SWARMDECK_CONTROLLER_ENDPOINT=100.64.0.1:50051 \
   swarmdeck-cli provision --robots tb-01,tb-02
 ```
 
+### `workflow`
+
+Run a named workflow (multi-step action sequence).
+
+```sh
+# Run a workflow
+swarmdeck-cli workflow deploy_fleet
+
+# Skip confirmation for dangerous steps
+swarmdeck-cli workflow deploy_fleet --yes
+
+# JSON output
+swarmdeck-cli workflow quick_test --json
+```
+
 ## Target Flags
 
 Targets are mutually exclusive -- exactly one of:

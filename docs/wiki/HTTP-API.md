@@ -16,6 +16,7 @@ Base URL: `http://<host>:<ui-bind>` (see `ControllerConfig.ui_bind`)
 | GET | `/api/runs` | -- | `RunView[]` (newest 50) |
 | GET | `/api/runs/{id}` | -- | `RunView` (404 if unknown) |
 | POST | `/api/run` | `RunRequest` | `RunResponse` |
+| POST | `/api/workflow` | `WorkflowRunRequest` | `RunResponse` |
 | POST | `/api/stop` | `StopRequest` | `string[]` (stopped ids) |
 | POST | `/api/adopt/{robot}` | `AdoptRequest` | `{}` |
 | POST | `/api/release/{robot}` | -- | `{}` |
@@ -72,7 +73,35 @@ Base URL: `http://<host>:<ui-bind>` (see `ControllerConfig.ui_bind`)
 ```json
 {
   "robot_type": ["sim.echo", "turtlebot3.bringup"],
-  "swarm": ["trial", "trial_danger"]
+  "swarm": ["trial", "trial_danger"],
+  "workflows": ["deploy_fleet", "quick_test"]
+}
+```
+
+### WorkflowRunRequest
+
+```json
+{
+  "workflow": "deploy_fleet",
+  "confirm": false
+}
+```
+
+### RunView
+
+```json
+{
+  "run_id": "9f7c...",
+  "action": "sim.echo",
+  "created_ms": 1720000000000,
+  "robots": [["sim-01", { "status": "running", "action_id": "...", "started_ms": 1720000000001 }]],
+  "workflow": {
+    "workflow_name": "deploy_fleet",
+    "current_step": 2,
+    "total_steps": 4,
+    "step_action": "sim-uav.takeoff",
+    "step_run_id": "a3b1..."
+  }
 }
 ```
 

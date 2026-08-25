@@ -49,6 +49,16 @@ pub enum ConfigError {
         "robot types directory '{path}' does not exist; create it or pass --robot-types"
     )]
     MissingTypesDir { path: String },
+
+    #[error("workflow '{workflow}' step {step}: unknown action '{action}'")]
+    UnknownWorkflowAction {
+        workflow: String,
+        step: usize,
+        action: String,
+    },
+
+    #[error("unknown workflow '{name}'")]
+    UnknownWorkflow { name: String },
 }
 
 #[derive(Debug, Error)]

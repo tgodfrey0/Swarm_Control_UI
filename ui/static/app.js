@@ -7,7 +7,7 @@ const state = {
   robots: new Map(),   // id -> RobotView
   runs: [],            // RunView[]
   types: [],           // (kept for future use; actions come from /api/actions)
-  actions: { robotType: [], swarm: [] }, // dispatchable refs from /api/actions
+  actions: { robotType: [], swarm: [], workflows: [] }, // dispatchable refs from /api/actions
   selectedRobot: null, // id currently shown in the log panel
   follow: true,
   modalOk: null,       // callback to run when the modal's OK is pressed
@@ -69,7 +69,11 @@ async function fetchActions() {
   // The wire contract uses snake_case ({"robot_type": [...], "swarm": [...]});
   // normalize into the camelCase shape the rest of this file uses.
   const view = await fetchJson("/api/actions");
-  state.actions = { robotType: view.robot_type || [], swarm: view.swarm || [] };
+  state.actions = {
+    robotType: view.robot_type || [],
+    swarm: view.swarm || [],
+    workflows: view.workflows || [],
+  };
 }
 
 async function fetchConfig() {
@@ -127,7 +131,14 @@ function renderRuns() {
       .join("");
     const el = document.createElement("div");
     el.className = "run";
-    el.innerHTML = `<div class="action">${escapeHtml(run.action)}</div>` +
+    let header = `<div class="action">${escapeHtml(run.action)}</div>`;
+    if (run.workflow) {
+      const wf = run.workflow;
+      const pct = wf.total_steps > 0 ? Math.round((wf.current_step / wf.total_steps) * 100) : 0;
+      header += `<div class="muted">step ${wf.current_step}/${wf.total_steps}: ${escapeHtml(wf.step_action || "…")}</div>`;
+      header += `<div class="wf-progress"><div class="wf-bar" style="width:${pct}%"></div></div>`;
+    }
+    el.innerHTML = header +
       (run.created_ms != null ? `<div class="muted">${formatTime(run.created_ms)}</div>` : "") +
       `<div class="status">${statuses}</div>`;
     // Still in flight somewhere → offer a kill switch for exactly those robots.
@@ -171,6 +182,7 @@ async function killRun(runId, robots, btn) {
 function populateActionSelect() {
   const sel = $("run-action");
   const groups = [
+    ["Workflows", state.actions.workflows],
     ["Swarm Tasks", state.actions.swarm],
     ["Robot Tasks", state.actions.robotType],
   ];
@@ -181,7 +193,7 @@ function populateActionSelect() {
     og.label = label;
     for (const a of items) {
       const opt = document.createElement("option");
-      opt.value = a;
+      opt.value = label === "Workflows" ? `workflow:${a}` : a;
       opt.textContent = a;
       og.appendChild(opt);
     }
@@ -314,6 +326,41 @@ function bindRunForm() {
       showModal("No action", "Choose an action first, then submit again.");
       return;
     }
+
+    // Workflow dispatch: separate endpoint, no targets needed.
+    if (action.startsWith("workflow:")) {
+      const workflowName = action.slice("workflow:".length);
+      const btn = $("run-submit");
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      try {
+        const resp = await fetchJson("/api/workflow", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ workflow: workflowName, confirm }),
+        });
+        out.className = "result ok";
+        out.textContent = `workflow ${workflowName}\nrun ${resp.run_id}`;
+      } catch (e) {
+        const text = String(e.message || e);
+        out.className = "result bad";
+        out.textContent = text;
+        if (text.includes("confirm with confirm=true")) {
+          showModal(
+            "Confirmation required",
+            "This workflow contains dangerous actions targeting multiple robots.\nRun it anyway?",
+            () => dispatch(true)
+          );
+        } else {
+          showModal("Dispatch failed", text);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Run";
+      }
+      return;
+    }
+
     const sel = $("run-targets").value;
     const custom = $("run-robots").value.split(",").map((s) => s.trim()).filter(Boolean);
     let targets;

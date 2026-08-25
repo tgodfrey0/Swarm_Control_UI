@@ -21,6 +21,7 @@ API. All JSON is snake_case. Responses are never cached (the host sets
 | GET    | `/api/runs`             | —                | `RunView[]` (newest 50) |
 | GET    | `/api/runs/{id}`        | —                | `RunView` (404 if unknown) |
 | POST   | `/api/run`              | `RunRequest`     | `RunResponse`       |
+| POST   | `/api/workflow`         | `WorkflowRunRequest` | `RunResponse`   |
 | POST   | `/api/stop`             | `StopRequest`    | `string[]` (stopped ids) |
 | POST   | `/api/adopt/{robot}`    | `AdoptRequest`   | `{}`                |
 | POST   | `/api/release/{robot}`  | —                | `{}`                |
@@ -58,7 +59,8 @@ API. All JSON is snake_case. Responses are never cached (the host sets
 // ActionsView — dispatchable actions. `robot_type` refs are "<type>.<action>".
 {
   "robot_type": ["sim.echo", "turtlebot3.bringup"],
-  "swarm": ["trial", "trial_danger"]
+  "swarm": ["trial", "trial_danger"],
+  "workflows": ["deploy_fleet", "quick_test"]
 }
 
 // ConfigView — loaded swarm summary.
@@ -97,15 +99,26 @@ API. All JSON is snake_case. Responses are never cached (the host sets
 // StopRequest.
 { "targets": { "robots": ["tb-01"] }, "confirm": false }
 
+// WorkflowRunRequest — start a named workflow.
+{ "workflow": "deploy_fleet", "confirm": false }
+
 // AdoptRequest — claim an unknown robot that phoned home.
 { "kind": "turtlebot3", "name": "front-lidar" }   // name optional
 
-// RunView — one batch run.
+// RunView — one batch run (or one step within a workflow).
 {
   "run_id": "9f7c...",
   "action": "sim.echo",
   "created_ms": 1720000000000,
-  "robots": [["sim-01", { "status": "running", "action_id": "...", "started_ms": 1720000000001 }]]
+  "robots": [["sim-01", { "status": "running", "action_id": "...", "started_ms": 1720000000001 }]],
+  // Present when this run is part of a workflow:
+  "workflow": {
+    "workflow_name": "deploy_fleet",
+    "current_step": 2,
+    "total_steps": 4,
+    "step_action": "sim-uav.takeoff",
+    "step_run_id": "a3b1..."
+  }
 }
 // RunRobotStatus (tagged by `status`):
 //   {"status":"queued"}
@@ -139,3 +152,21 @@ On connect the server sends two snapshots first: `{"type":"robots",...}` then
 
 Clients should treat `robots`/`runs` as authoritative full state and `robot`/
 `run` as deltas, applied to their local copy.
+
+## Workflows
+
+Workflows are multi-step action sequences defined in `swarm.toml` under
+`[workflows]`. Each step references an existing standalone action and targets
+a set of robots. Steps run sequentially; the engine waits for all targeted
+robots to finish each step before proceeding to the next.
+
+`POST /api/workflow` accepts a `WorkflowRunRequest` and returns a `RunResponse`
+immediately (the workflow runs asynchronously). The workflow's progress is
+tracked via the same `RunView` system — each workflow run has a `workflow` field
+with `current_step`, `total_steps`, `step_action`, and `step_run_id`.
+
+### Failure semantics
+
+- `continue_on_error: false` (default) — `&&` semantics: abort the workflow if the step fails.
+- `continue_on_error: true` — `;` semantics: proceed to the next step regardless.
+- A workflow-level `on_failure` setting provides the default; per-step overrides it.
