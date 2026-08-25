@@ -236,6 +236,11 @@ pub struct AgentConfig {
     /// a shared base config); the agent rejects an empty id at startup.
     #[serde(default)]
     pub robot_id: String,
+    /// Optional human-readable name supplied by the agent. Sent to the host
+    /// at registration; the swarm TOML's per-robot `name` takes precedence
+    /// for pre-defined robots.
+    #[serde(default)]
+    pub name: Option<String>,
     pub controller: AgentControllerConfig,
     /// Robot-local environment inherited by every spawned action process.
     #[serde(default)]

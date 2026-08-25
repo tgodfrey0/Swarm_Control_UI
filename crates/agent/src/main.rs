@@ -19,6 +19,10 @@ struct Args {
     /// started directly without a per-agent file).
     #[arg(long)]
     robot_id: Option<String>,
+    /// Override the agent name (shown in the UI). Overrides the agent TOML's
+    /// `name` field; the swarm TOML still wins for pre-defined robots.
+    #[arg(long)]
+    name: Option<String>,
 }
 
 fn setup_logging(name: &str) -> WorkerGuard {
@@ -46,6 +50,9 @@ async fn main() -> anyhow::Result<()> {
     let mut cfg = swarmdeck_core::AgentConfig::from_toml_path(&args.config)?;
     if let Some(id) = args.robot_id {
         cfg.robot_id = id;
+    }
+    if let Some(n) = args.name {
+        cfg.name = Some(n);
     }
     cfg.validate()?;
 

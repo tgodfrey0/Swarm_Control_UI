@@ -78,6 +78,7 @@ async fn session_once(cfg: &AgentConfig, runner: Arc<Runner>) -> anyhow::Result<
                 agent_version: env!("CARGO_PKG_VERSION").to_string(),
                 hostname: hostname(),
                 capabilities: Default::default(),
+                name: cfg.name.clone().unwrap_or_default(),
             })),
         })
         .await

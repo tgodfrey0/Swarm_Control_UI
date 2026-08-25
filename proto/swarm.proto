@@ -29,6 +29,8 @@ message Register {
   string agent_version = 3;
   string hostname = 4;
   map<string, string> capabilities = 5;
+  // Optional human-readable name supplied by the agent (TOML or CLI).
+  string name = 6;
 }
 
 message Heartbeat {

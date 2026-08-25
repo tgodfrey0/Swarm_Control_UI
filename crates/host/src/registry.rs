@@ -230,6 +230,10 @@ impl Registry {
                     } else {
                         Some(reg.hostname.clone())
                     };
+                    // Agent-provided name (from TOML or --name CLI arg).
+                    if !reg.name.is_empty() {
+                        entry.name = reg.name.clone();
+                    }
                 }
                 self.publish_robot(robot_id).await;
             }
@@ -506,11 +510,15 @@ impl Registry {
         RobotView {
             id: entry.robot_id.clone(),
             name: if entry.adopted || cfg_robot.is_none() {
+                // Adhoc / adopted robots: use the agent-provided name, then
+                // hostname, then robot_id.
                 entry.name.clone()
             } else {
+                // Pre-defined robots: swarm TOML name wins when set; otherwise
+                // fall back to agent-provided name.
                 cfg_robot
                     .as_ref()
-                    .map(|r| r.display_name().to_string())
+                    .and_then(|r| r.name.as_deref().map(|n| n.to_string()))
                     .unwrap_or_else(|| entry.name.clone())
             },
             kind,
