@@ -11,6 +11,8 @@ const state = {
   selectedRobot: null, // id currently shown in the log panel
   follow: true,
   modalOk: null,       // callback to run when the modal's OK is pressed
+  prevConnected: new Map(), // id -> previous connected state (for change detection)
+  connectEvents: new Map(), // id -> [{ts_ms, stderr, text}] synthetic log lines
 };
 
 // ---------------------------------------------------------------------------
@@ -27,6 +29,11 @@ async function init() {
   if (failed.length) {
     console.warn("initial fetch failed", failed.map((r) => r.reason));
   }
+  // Seed connection state tracker so the first WS update doesn't fire
+  // spurious connect/disconnect log lines.
+  for (const [id, r] of state.robots) {
+    state.prevConnected.set(id, r.connected);
+  }
   renderRobots();
   renderRuns();
   populateActionSelect();
@@ -36,6 +43,7 @@ async function init() {
   bindLogCopy();
   bindLogDownload();
   bindThemeToggle();
+  bindClearAll();
   connectWs();
 }
 
@@ -231,6 +239,7 @@ function connectWs() {
         renderRobots();
         break;
       case "robot":
+        detectConnectChange(msg.robot);
         state.robots.set(msg.robot.id, msg.robot);
         renderRobots();
         break;
@@ -253,6 +262,28 @@ function upsertRun(run) {
   const i = state.runs.findIndex((r) => r.run_id === run.run_id);
   if (i >= 0) state.runs[i] = run;
   else state.runs.unshift(run);
+}
+
+function detectConnectChange(robot) {
+  const prev = state.prevConnected.get(robot.id);
+  const now = robot.connected;
+  state.prevConnected.set(robot.id, now);
+  if (prev === undefined) return; // first time seeing this robot
+  if (prev === now) return;
+  const ts = Date.now();
+  const line = {
+    ts_ms: ts,
+    stderr: !now,
+    text: now
+      ? `robot ${robot.id} connected`
+      : `robot ${robot.id} disconnected`,
+  };
+  if (!state.connectEvents.has(robot.id)) {
+    state.connectEvents.set(robot.id, []);
+  }
+  state.connectEvents.get(robot.id).push(line);
+  // If this robot's log panel is open, append directly.
+  if (state.selectedRobot === robot.id) appendLogs([line]);
 }
 
 function setConn(up) {
@@ -396,7 +427,10 @@ async function loadLogs() {
   if (!state.selectedRobot) return;
   try {
     const lines = await fetchJson(`/api/robots/${encodeURIComponent(state.selectedRobot)}/logs?tail=200`);
-    appendLogs(lines);
+    // Merge in per-robot connection events, sorted by timestamp.
+    const events = state.connectEvents.get(state.selectedRobot) || [];
+    const merged = [...lines, ...events].sort((a, b) => a.ts_ms - b.ts_ms);
+    appendLogs(merged);
   } catch (e) {
     view.innerHTML = `<div class="line stderr">failed to load logs: ${escapeHtml(String(e))}</div>`;
   }
@@ -479,6 +513,29 @@ function bindThemeToggle() {
     const next = root.dataset.theme === "light" ? "dark" : "light";
     root.dataset.theme = next;
     try { localStorage.setItem("theme", next); } catch {}
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Clear logs & runs
+// ---------------------------------------------------------------------------
+function bindClearAll() {
+  $("clear-all").onclick = () => {
+    showModal(
+      "Clear logs & runs",
+      "Clear all logs and run history?\nThis cannot be undone.",
+      async () => {
+        try {
+          await fetch("/api/clear", { method: "POST" });
+          $("log-view").innerHTML = "";
+          state.runs = [];
+          state.connectEvents.clear();
+          renderRuns();
+        } catch (e) {
+          showModal("Clear failed", String(e.message || e));
+        }
+      }
+    );
   };
 }
 

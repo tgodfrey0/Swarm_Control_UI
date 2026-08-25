@@ -85,12 +85,17 @@ header h1 { font-size: 16px; margin: 0; }
 .conn.connecting { background: var(--card); color: var(--muted); }
 .conn.online { background: rgba(46,160,67,.15); color: var(--ok); }
 .conn.offline { background: rgba(248,81,73,.15); color: var(--bad); }
+.clear-btn {
+  background: var(--chip); color: var(--muted); border: 1px solid var(--border);
+  font-size: 11px; padding: 3px 10px; text-transform: none; letter-spacing: 0;
+}
+.clear-btn:hover { color: var(--text); border-color: var(--muted); }
 
 main {
   display: grid;
   grid-template-columns: 1fr 340px;
   grid-template-areas: "swarm side" "logs side";
-  gap: 16px;
+  gap: 8px 16px;
   padding: 16px;
   max-width: 1500px;
   margin: 0 auto;

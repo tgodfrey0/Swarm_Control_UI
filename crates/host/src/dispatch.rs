@@ -79,6 +79,11 @@ impl RunStore {
         group.robots.insert(robot.to_string(), status);
         Some(group.view())
     }
+
+    /// Clear all run history.
+    pub async fn clear(&self) {
+        self.inner.write().await.clear();
+    }
 }
 
 /// High-level runner over the registry's robot command channels.

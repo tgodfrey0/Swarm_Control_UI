@@ -117,6 +117,9 @@ impl LogRing {
     pub fn tail(&self, n: usize) -> Vec<LogLine> {
         self.lines.iter().rev().take(n).rev().cloned().collect()
     }
+    pub fn clear(&mut self) {
+        self.lines.clear();
+    }
 }
 
 impl Registry {
@@ -635,5 +638,17 @@ impl Registry {
         });
         tracing::info!("swarm config reloaded");
         Ok(())
+    }
+
+    /// Clear all robot log buffers and pending log batches.
+    pub async fn clear_logs(&self) {
+        {
+            let mut robots = self.robots.write().await;
+            for entry in robots.values_mut() {
+                entry.logs.clear();
+            }
+        }
+        self.pending_logs.lock().await.clear();
+        tracing::info!("logs cleared");
     }
 }

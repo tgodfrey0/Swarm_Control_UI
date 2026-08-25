@@ -10,6 +10,7 @@
 //!   GET  /api/runs/{id}         -> RunView
 //!   POST /api/run               -> RunResponse
 //!   POST /api/stop              -> stopped robot ids
+//!   POST /api/clear             -> clears all logs and runs
 //!   POST /api/adopt/{robot}     -> {}
 //!   POST /api/release/{robot}   -> {}
 //!   GET  /api/robots/{id}/logs  -> Vec<LogLine>
@@ -69,6 +70,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/runs/{run_id}", get(get_run))
         .route("/api/run", post(run_action))
         .route("/api/stop", post(stop_action))
+        .route("/api/clear", post(clear_all))
         .route("/api/adopt/{robot}", post(adopt_robot))
         .route("/api/release/{robot}", post(release_robot))
         .route("/api/robots/{robot}/logs", get(robot_logs))
@@ -222,6 +224,13 @@ async fn stop_action(
         Ok(stopped) => Ok(Json(stopped)),
         Err(e) => Err(err(e)),
     }
+}
+
+async fn clear_all(State(state): State<AppState>) -> StatusCode {
+    state.registry.clear_logs().await;
+    state.registry.run_store.clear().await;
+    state.registry.events.publish(Event::Runs { runs: Vec::new() });
+    StatusCode::OK
 }
 
 async fn adopt_robot(
