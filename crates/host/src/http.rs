@@ -153,10 +153,18 @@ async fn list_actions(State(state): State<AppState>) -> Json<ActionsView> {
     swarm.sort();
     let mut workflows: Vec<String> = cfg.workflows.keys().cloned().collect();
     workflows.sort();
+    let mut type_workflows: Vec<String> = Vec::new();
+    for (ty, ty_cfg) in &cfg.robot_types {
+        for wf_name in ty_cfg.workflows.keys() {
+            type_workflows.push(format!("{ty}.{wf_name}"));
+        }
+    }
+    type_workflows.sort();
     Json(ActionsView {
         robot_type,
         swarm,
         workflows,
+        type_workflows,
     })
 }
 
@@ -201,7 +209,7 @@ struct LogsQuery {
 }
 
 fn default_tail() -> usize {
-    200
+    0
 }
 
 async fn robot_logs(

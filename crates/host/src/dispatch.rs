@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 
 use swarmdeck_core::{
-    resolve_command, ConfigError, Event, Result as CoreResult, RunRequest, RunResponse,
+    resolve_command, ApiTargets, ConfigError, Event, Result as CoreResult, RunRequest, RunResponse,
     RunRobotStatus, RunView, WorkflowOnFailure, WorkflowRunInfo,
 };
 use swarmdeck_proto::v1::{command::Command as CommandMsg, Command, RunAction, StopAction};
@@ -112,16 +112,31 @@ impl RunStore {
     }
 
     /// Wait until all robots in the given run reach a terminal state.
+    /// Returns immediately if the run has no robots (nothing to wait for).
     pub async fn wait_for_terminal(&self, run_id: &str) {
+        // Fast path: if the run doesn't exist or has no robots, return
+        // immediately — there's nothing to wait for.
+        {
+            let inner = self.inner.read().await;
+            if let Some(group) = inner.get(run_id) {
+                if group.robots.is_empty() {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
         let mut recv = self.step_done.subscribe();
         loop {
             {
                 let inner = self.inner.read().await;
                 if let Some(group) = inner.get(run_id) {
                     let all_done = group.robots.values().all(|s| s.is_terminal());
-                    if all_done && !group.robots.is_empty() {
+                    if all_done {
                         return;
                     }
+                } else {
+                    return;
                 }
             }
             let _ = recv.recv().await;
@@ -365,13 +380,55 @@ impl Dispatcher {
     /// all targeted robots to finish each step before proceeding to the next.
     pub async fn run_workflow(&self, name: &str, confirm: bool) -> CoreResult<RunResponse> {
         let cfg = self.registry.config.read().await.clone();
-        let workflow = cfg
-            .workflows
-            .get(name)
-            .ok_or_else(|| ConfigError::UnknownWorkflow {
-                name: name.to_string(),
-            })?
-            .clone();
+
+        // Resolve the workflow: either swarm-level or type-level (e.g. "sim-uav.deploy").
+        let (workflow, is_type_wf) = if let Some((ty, wf_name)) = name.split_once('.') {
+            let ty_cfg = cfg.robot_types.get(ty).ok_or_else(|| {
+                ConfigError::UnknownWorkflow {
+                    name: name.to_string(),
+                }
+            })?;
+            let wf = ty_cfg.workflows.get(wf_name).ok_or_else(|| {
+                ConfigError::UnknownWorkflow {
+                    name: name.to_string(),
+                }
+            })?;
+            (wf.clone(), true)
+        } else {
+            let wf = cfg.workflows.get(name).ok_or_else(|| {
+                ConfigError::UnknownWorkflow {
+                    name: name.to_string(),
+                }
+            })?;
+            (wf.clone(), false)
+        };
+
+        // Pre-flight: if any step targets a dangerous action, the entire
+        // workflow requires confirmation.
+        if !confirm {
+            for (i, step) in workflow.steps.iter().enumerate() {
+                let is_dangerous = if let Some((ty, act)) = step.action.split_once('.') {
+                    cfg.robot_types
+                        .get(ty)
+                        .and_then(|t| t.actions.get(act))
+                        .is_some_and(|a| a.dangerous)
+                } else {
+                    cfg.actions
+                        .get(step.action.as_str())
+                        .is_some_and(|a| a.dangerous)
+                };
+                if is_dangerous {
+                    return Err(ConfigError::ConfirmRequired {
+                        action: format!(
+                            "workflow:{name} (step {} — {} is dangerous)",
+                            i + 1,
+                            step.action
+                        ),
+                        count: 1,
+                    });
+                }
+            }
+        }
 
         let run_id = uuid::Uuid::new_v4().simple().to_string();
         let total_steps = workflow.steps.len();
@@ -393,7 +450,8 @@ impl Dispatcher {
         });
 
         let wf_name = name.to_string();
-        let wf_name_clone = wf_name.clone();
+        let wf_name_spawn = wf_name.clone();
+        let wf_name_type = wf_name.clone();
 
         // Spawn a background task that drives the workflow steps sequentially.
         let dispatcher = self.clone();
@@ -403,10 +461,27 @@ impl Dispatcher {
         let wf_run_id = run_id.clone();
 
         tokio::spawn(async move {
-            for (i, step) in steps.iter().enumerate() {
+            let mut all_steps_done = true;
+            'steps: for (i, step) in steps.iter().enumerate() {
+                // Resolve targets: explicit on the step, or implicit (all robots of the type).
+                let targets = match &step.targets {
+                    Some(t) => t.clone(),
+                    None if is_type_wf => {
+                        let ty = wf_name_type.split_once('.').map(|(t, _)| t).unwrap_or("");
+                        ApiTargets::Types(vec![ty.to_string()])
+                    }
+                    _ => {
+                        tracing::warn!(
+                            workflow = %wf_name_spawn,
+                            step = i + 1,
+                            "swarm workflow step missing targets"
+                        );
+                        continue;
+                    }
+                };
                 let req = RunRequest {
                     action: step.action.clone(),
-                    targets: step.targets.clone(),
+                    targets,
                     confirm,
                     timeout_sec: None,
                     background: false,
@@ -416,17 +491,44 @@ impl Dispatcher {
                     Ok(r) => r,
                     Err(e) => {
                         tracing::warn!(
-                            workflow = %wf_name_clone,
+                            workflow = %wf_name_type,
                             step = i + 1,
                             error = %e,
                             "workflow step dispatch failed"
                         );
+                        all_steps_done = false;
                         if on_failure == WorkflowOnFailure::Abort {
-                            break;
+                            break 'steps;
                         }
                         continue;
                     }
                 };
+
+                tracing::info!(
+                    workflow = %wf_name_type,
+                    step = i + 1,
+                    total = total_steps,
+                    action = %resp.action,
+                    targeted = resp.targeted.len(),
+                    busy = resp.busy.len(),
+                    offline = resp.offline.len(),
+                    "workflow step dispatched"
+                );
+
+                if resp.targeted.is_empty() {
+                    tracing::warn!(
+                        workflow = %wf_name_type,
+                        step = i + 1,
+                        busy = ?resp.busy,
+                        offline = ?resp.offline,
+                        "workflow step has no targeted robots — skipping"
+                    );
+                    all_steps_done = false;
+                    if on_failure == WorkflowOnFailure::Abort {
+                        break 'steps;
+                    }
+                    continue;
+                }
 
                 // Update workflow progress with the step's action and run_id.
                 if let Some(run) = registry
@@ -462,19 +564,23 @@ impl Dispatcher {
                 if step_failed && !step.continue_on_error
                     && on_failure == WorkflowOnFailure::Abort
                 {
-                    break;
+                    all_steps_done = false;
+                    break 'steps;
                 }
             }
 
-            // Mark workflow as complete (current_step = total_steps).
-            if let Some(_run) = registry
-                .run_store
-                .update_workflow_step(&wf_run_id, total_steps, "", "")
-                .await
-            {
-                registry.events.publish(Event::Runs {
-                    runs: registry.run_store.recent(20).await,
-                });
+            // Mark workflow as complete only if every step ran; on abort
+            // we leave current_step at the last successfully completed step.
+            if all_steps_done {
+                if let Some(_run) = registry
+                    .run_store
+                    .update_workflow_step(&wf_run_id, total_steps, "", "")
+                    .await
+                {
+                    registry.events.publish(Event::Runs {
+                        runs: registry.run_store.recent(20).await,
+                    });
+                }
             }
         });
 

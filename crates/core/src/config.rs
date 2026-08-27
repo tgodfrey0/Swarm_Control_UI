@@ -95,15 +95,43 @@ impl SwarmConfig {
                 });
             }
         }
-        // Validate that every workflow step references an existing action.
+        // Validate swarm-level workflows: steps must reference existing actions
+        // and must have explicit targets.
         for (wf_name, wf) in &self.workflows {
             for (i, step) in wf.steps.iter().enumerate() {
+                if step.targets.is_none() {
+                    return Err(ConfigError::WorkflowStepMissingTargets {
+                        workflow: wf_name.clone(),
+                        step: i + 1,
+                    });
+                }
                 if !self.action_exists(&step.action) {
                     return Err(ConfigError::UnknownWorkflowAction {
                         workflow: wf_name.clone(),
                         step: i + 1,
                         action: step.action.clone(),
                     });
+                }
+            }
+        }
+        // Validate type-level workflows.
+        for (ty_name, ty) in &self.robot_types {
+            for (wf_name, wf) in &ty.workflows {
+                for (i, step) in wf.steps.iter().enumerate() {
+                    // Type workflow actions can reference own-type actions or swarm actions.
+                    let is_type_action = step
+                        .action
+                        .split_once('.')
+                        .is_some_and(|(t, a)| t == ty_name && self.robot_types[ty_name].actions.contains_key(a));
+                    let is_swarm_action =
+                        !step.action.contains('.') && self.actions.contains_key(step.action.as_str());
+                    if !is_type_action && !is_swarm_action {
+                        return Err(ConfigError::UnknownWorkflowAction {
+                            workflow: format!("{ty_name}.{wf_name}"),
+                            step: i + 1,
+                            action: step.action.clone(),
+                        });
+                    }
                 }
             }
         }
@@ -187,6 +215,11 @@ pub struct RobotTypeConfig {
     pub display_name: Option<String>,
     #[serde(default)]
     pub actions: BTreeMap<String, ActionConfig>,
+    /// Type-level workflows: reusable multi-step sequences scoped to this
+    /// robot type. Steps without `targets` implicitly target all robots of
+    /// this type.
+    #[serde(default)]
+    pub workflows: BTreeMap<String, WorkflowConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -239,7 +272,10 @@ pub struct WorkflowConfig {
 #[serde(deny_unknown_fields)]
 pub struct WorkflowStep {
     pub action: String,
-    pub targets: ApiTargets,
+    /// Required for swarm-level workflows. Optional for type-level workflows;
+    /// when omitted the step implicitly targets all robots of the owning type.
+    #[serde(default)]
+    pub targets: Option<ApiTargets>,
     /// `true` = `;` semantics: run the next step regardless of this step's outcome.
     /// `false` / absent = `&&` semantics: abort the workflow on failure.
     #[serde(default)]

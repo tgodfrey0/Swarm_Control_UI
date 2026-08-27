@@ -59,6 +59,9 @@ pub enum ConfigError {
 
     #[error("unknown workflow '{name}'")]
     UnknownWorkflow { name: String },
+
+    #[error("swarm workflow '{workflow}' step {step}: missing targets (swarm-level workflow steps must specify targets)")]
+    WorkflowStepMissingTargets { workflow: String, step: usize },
 }
 
 #[derive(Debug, Error)]

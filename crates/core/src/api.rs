@@ -66,12 +66,13 @@ pub struct AdoptRequest {
 
 /// Dispatchable actions served to the WebUI/CLI: robot-type actions as
 /// `"<type>.<action>"` refs, plus swarm-level `[actions]` by bare name,
-/// plus named workflows.
+/// plus named workflows (swarm-level and type-level).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionsView {
     pub robot_type: Vec<String>,
     pub swarm: Vec<String>,
     pub workflows: Vec<String>,
+    pub type_workflows: Vec<String>,
 }
 
 /// Summary of the loaded swarm config, served to UI/CLI clients.

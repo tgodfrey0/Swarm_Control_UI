@@ -19,6 +19,7 @@ fn actions_view_is_snake_case() {
         robot_type: vec!["sim.echo".into()],
         swarm: vec!["trial".into()],
         workflows: vec![],
+        type_workflows: vec![],
     });
     assert_eq!(
         v["robot_type"],

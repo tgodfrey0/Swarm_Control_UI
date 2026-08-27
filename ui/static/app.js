@@ -7,7 +7,7 @@ const state = {
   robots: new Map(),   // id -> RobotView
   runs: [],            // RunView[]
   types: [],           // (kept for future use; actions come from /api/actions)
-  actions: { robotType: [], swarm: [], workflows: [] }, // dispatchable refs from /api/actions
+  actions: { robotType: [], swarm: [], workflows: [], typeWorkflows: [] }, // dispatchable refs from /api/actions
   selectedRobot: null, // id currently shown in the log panel
   follow: true,
   modalOk: null,       // callback to run when the modal's OK is pressed
@@ -73,6 +73,7 @@ async function fetchActions() {
     robotType: view.robot_type || [],
     swarm: view.swarm || [],
     workflows: view.workflows || [],
+    typeWorkflows: view.type_workflows || [],
   };
 }
 
@@ -182,18 +183,19 @@ async function killRun(runId, robots, btn) {
 function populateActionSelect() {
   const sel = $("run-action");
   const groups = [
-    ["Workflows", state.actions.workflows],
-    ["Swarm Tasks", state.actions.swarm],
-    ["Robot Tasks", state.actions.robotType],
+    ["Workflows", state.actions.workflows, true],
+    ["Type Workflows", state.actions.typeWorkflows, true],
+    ["Swarm Tasks", state.actions.swarm, false],
+    ["Robot Tasks", state.actions.robotType, false],
   ];
   sel.innerHTML = `<option value="">choose an action…</option>`;
-  for (const [label, items] of groups) {
+  for (const [label, items, isWorkflow] of groups) {
     if (!items.length) continue;
     const og = document.createElement("optgroup");
     og.label = label;
     for (const a of items) {
       const opt = document.createElement("option");
-      opt.value = label === "Workflows" ? `workflow:${a}` : a;
+      opt.value = isWorkflow ? `workflow:${a}` : a;
       opt.textContent = a;
       og.appendChild(opt);
     }
@@ -473,7 +475,7 @@ async function loadLogs() {
   view.innerHTML = "";
   if (!state.selectedRobot) return;
   try {
-    const lines = await fetchJson(`/api/robots/${encodeURIComponent(state.selectedRobot)}/logs?tail=200`);
+    const lines = await fetchJson(`/api/robots/${encodeURIComponent(state.selectedRobot)}/logs`);
     // Merge in per-robot connection events, sorted by timestamp.
     const events = state.connectEvents.get(state.selectedRobot) || [];
     const merged = [...lines, ...events].sort((a, b) => a.ts_ms - b.ts_ms);

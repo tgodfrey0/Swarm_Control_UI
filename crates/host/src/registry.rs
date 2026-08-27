@@ -21,7 +21,6 @@ use crate::events::EventBus;
 
 /// Robots are considered offline after this much silence.
 pub const STALE_AFTER_MS: u64 = 15_000;
-const LOG_RING_MAX: usize = 2000;
 const LOG_FLUSH_EVERY_MS: u64 = 250;
 
 pub fn now_ms() -> u64 {
@@ -90,7 +89,7 @@ impl RobotEntry {
             background_actions: BTreeMap::new(),
             cmd_tx: None,
             cmd_tx_seq: 0,
-            logs: LogRing::new(LOG_RING_MAX),
+            logs: LogRing::new(),
         }
     }
 }
@@ -98,23 +97,21 @@ impl RobotEntry {
 #[derive(Clone)]
 pub struct LogRing {
     lines: VecDeque<LogLine>,
-    max: usize,
 }
 
 impl LogRing {
-    pub fn new(max: usize) -> Self {
+    pub fn new() -> Self {
         Self {
             lines: VecDeque::new(),
-            max,
         }
     }
     pub fn push(&mut self, line: LogLine) {
-        if self.lines.len() >= self.max {
-            self.lines.pop_front();
-        }
         self.lines.push_back(line);
     }
     pub fn tail(&self, n: usize) -> Vec<LogLine> {
+        if n == 0 {
+            return self.lines.iter().cloned().collect();
+        }
         self.lines.iter().rev().take(n).rev().cloned().collect()
     }
     pub fn clear(&mut self) {

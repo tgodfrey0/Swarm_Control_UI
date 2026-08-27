@@ -142,6 +142,7 @@ mod tests {
                                 background: false,
                             },
                         )]),
+                        workflows: BTreeMap::new(),
                     },
                 ),
                 (
@@ -149,6 +150,7 @@ mod tests {
                     RobotTypeConfig {
                         display_name: Some("UAV".into()),
                         actions: BTreeMap::new(),
+                        workflows: BTreeMap::new(),
                     },
                 ),
             ]),
@@ -296,7 +298,7 @@ type = "x"
                 description: None,
                 steps: vec![WorkflowStep {
                     action: "turtlebot3.bringup".into(),
-                    targets: ApiTargets::All,
+                    targets: Some(ApiTargets::All),
                     continue_on_error: false,
                 }],
                 on_failure: Default::default(),
@@ -316,7 +318,7 @@ type = "x"
                 description: None,
                 steps: vec![WorkflowStep {
                     action: "turtlebot3.nonexistent".into(),
-                    targets: ApiTargets::All,
+                    targets: Some(ApiTargets::All),
                     continue_on_error: false,
                 }],
                 on_failure: Default::default(),
