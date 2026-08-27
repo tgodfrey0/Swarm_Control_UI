@@ -45,9 +45,7 @@ pub enum ConfigError {
     )]
     MissingRobotId,
 
-    #[error(
-        "robot types directory '{path}' does not exist; create it or pass --robot-types"
-    )]
+    #[error("robot types directory '{path}' does not exist; create it or pass --robot-types")]
     MissingTypesDir { path: String },
 
     #[error("workflow '{workflow}' step {step}: unknown action '{action}'")]

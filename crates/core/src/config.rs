@@ -119,12 +119,11 @@ impl SwarmConfig {
             for (wf_name, wf) in &ty.workflows {
                 for (i, step) in wf.steps.iter().enumerate() {
                     // Type workflow actions can reference own-type actions or swarm actions.
-                    let is_type_action = step
-                        .action
-                        .split_once('.')
-                        .is_some_and(|(t, a)| t == ty_name && self.robot_types[ty_name].actions.contains_key(a));
-                    let is_swarm_action =
-                        !step.action.contains('.') && self.actions.contains_key(step.action.as_str());
+                    let is_type_action = step.action.split_once('.').is_some_and(|(t, a)| {
+                        t == ty_name && self.robot_types[ty_name].actions.contains_key(a)
+                    });
+                    let is_swarm_action = !step.action.contains('.')
+                        && self.actions.contains_key(step.action.as_str());
                     if !is_type_action && !is_swarm_action {
                         return Err(ConfigError::UnknownWorkflowAction {
                             workflow: format!("{ty_name}.{wf_name}"),

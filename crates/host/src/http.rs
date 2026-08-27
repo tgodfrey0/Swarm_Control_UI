@@ -35,7 +35,9 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 
-use swarmlink_core::{ActionsView, AdoptRequest, Event, RunRequest, RunResponse, StopRequest, WorkflowRunRequest};
+use swarmlink_core::{
+    ActionsView, AdoptRequest, Event, RunRequest, RunResponse, StopRequest, WorkflowRunRequest,
+};
 
 use crate::dispatch::Dispatcher;
 use crate::registry::Registry;
@@ -234,8 +236,8 @@ async fn export_logs(State(state): State<AppState>) -> ApiResult<impl IntoRespon
     let mut buf = Cursor::new(Vec::new());
     {
         let mut zw = zip::ZipWriter::new(&mut buf);
-        let opts = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
+        let opts =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         if logs.is_empty() {
             zw.add_directory("logs/", opts).map_err(err)?;
         }
@@ -243,7 +245,12 @@ async fn export_logs(State(state): State<AppState>) -> ApiResult<impl IntoRespon
             let name = format!("{robot_id}.log");
             let mut text = String::new();
             for l in lines {
-                text.push_str(&format!("{}[{}] {}\n", if l.stderr { "ERR " } else { "" }, format_log_ts(l.ts_ms), l.text));
+                text.push_str(&format!(
+                    "{}[{}] {}\n",
+                    if l.stderr { "ERR " } else { "" },
+                    format_log_ts(l.ts_ms),
+                    l.text
+                ));
             }
             zw.start_file(name, opts).map_err(err)?;
             zw.write_all(text.as_bytes()).map_err(err)?;
@@ -260,8 +267,7 @@ async fn export_logs(State(state): State<AppState>) -> ApiResult<impl IntoRespon
     );
     response.headers_mut().insert(
         header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("attachment; filename=\"{filename}\""))
-            .map_err(err)?,
+        HeaderValue::from_str(&format!("attachment; filename=\"{filename}\"")).map_err(err)?,
     );
     Ok(response)
 }
@@ -290,7 +296,11 @@ async fn run_workflow(
     State(state): State<AppState>,
     Json(req): Json<WorkflowRunRequest>,
 ) -> ApiResult<Json<RunResponse>> {
-    match state.dispatcher.run_workflow(&req.workflow, req.confirm).await {
+    match state
+        .dispatcher
+        .run_workflow(&req.workflow, req.confirm)
+        .await
+    {
         Ok(resp) => Ok(Json(resp)),
         Err(e) => Err(err(e)),
     }
@@ -309,7 +319,10 @@ async fn stop_action(
 async fn clear_all(State(state): State<AppState>) -> StatusCode {
     state.registry.clear_logs().await;
     state.registry.run_store.clear().await;
-    state.registry.events.publish(Event::Runs { runs: Vec::new() });
+    state
+        .registry
+        .events
+        .publish(Event::Runs { runs: Vec::new() });
     StatusCode::OK
 }
 

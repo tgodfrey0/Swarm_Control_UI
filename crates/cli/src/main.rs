@@ -169,11 +169,7 @@ async fn main() -> anyhow::Result<()> {
             robots,
             user,
         } => provision::provision(&config, Some(&robot_types), &robots, user.as_deref())?,
-        Command::Workflow {
-            name,
-            yes,
-            json,
-        } => cmd_workflow(&client, &name, yes, json).await?,
+        Command::Workflow { name, yes, json } => cmd_workflow(&client, &name, yes, json).await?,
     }
     Ok(())
 }
@@ -302,12 +298,7 @@ async fn cmd_run(
     Ok(())
 }
 
-async fn cmd_workflow(
-    client: &Client,
-    name: &str,
-    yes: bool,
-    json: bool,
-) -> anyhow::Result<()> {
+async fn cmd_workflow(client: &Client, name: &str, yes: bool, json: bool) -> anyhow::Result<()> {
     let resp = match client.dispatch_workflow(name, false).await {
         Ok(resp) => resp,
         Err(ClientError::ConfirmRequired { message, .. }) => {

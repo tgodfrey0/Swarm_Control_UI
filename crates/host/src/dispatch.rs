@@ -383,23 +383,26 @@ impl Dispatcher {
 
         // Resolve the workflow: either swarm-level or type-level (e.g. "sim-uav.deploy").
         let (workflow, is_type_wf) = if let Some((ty, wf_name)) = name.split_once('.') {
-            let ty_cfg = cfg.robot_types.get(ty).ok_or_else(|| {
-                ConfigError::UnknownWorkflow {
+            let ty_cfg = cfg
+                .robot_types
+                .get(ty)
+                .ok_or_else(|| ConfigError::UnknownWorkflow {
                     name: name.to_string(),
-                }
-            })?;
-            let wf = ty_cfg.workflows.get(wf_name).ok_or_else(|| {
-                ConfigError::UnknownWorkflow {
+                })?;
+            let wf = ty_cfg
+                .workflows
+                .get(wf_name)
+                .ok_or_else(|| ConfigError::UnknownWorkflow {
                     name: name.to_string(),
-                }
-            })?;
+                })?;
             (wf.clone(), true)
         } else {
-            let wf = cfg.workflows.get(name).ok_or_else(|| {
-                ConfigError::UnknownWorkflow {
+            let wf = cfg
+                .workflows
+                .get(name)
+                .ok_or_else(|| ConfigError::UnknownWorkflow {
                     name: name.to_string(),
-                }
-            })?;
+                })?;
             (wf.clone(), false)
         };
 
@@ -533,12 +536,7 @@ impl Dispatcher {
                 // Update workflow progress with the step's action and run_id.
                 if let Some(run) = registry
                     .run_store
-                    .update_workflow_step(
-                        &wf_run_id,
-                        i + 1,
-                        &resp.action,
-                        &resp.run_id,
-                    )
+                    .update_workflow_step(&wf_run_id, i + 1, &resp.action, &resp.run_id)
                     .await
                 {
                     registry.events.publish(Event::Run { run });
@@ -561,8 +559,7 @@ impl Dispatcher {
                         .unwrap_or(false)
                 };
 
-                if step_failed && !step.continue_on_error
-                    && on_failure == WorkflowOnFailure::Abort
+                if step_failed && !step.continue_on_error && on_failure == WorkflowOnFailure::Abort
                 {
                     all_steps_done = false;
                     break 'steps;
