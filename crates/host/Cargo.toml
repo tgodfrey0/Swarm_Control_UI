@@ -1,19 +1,19 @@
 [package]
-name = "swarmdeck-host"
+name = "swarmlink-host"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "SwarmDeck control host: gRPC endpoint + WebUI + dispatch engine"
+description = "Swarmlink control host: gRPC endpoint + WebUI + dispatch engine"
 
 [[bin]]
-name = "swarmdeck"
+name = "swarmlink"
 path = "src/main.rs"
 
 [dependencies]
-swarmdeck-core.workspace = true
-swarmdeck-proto.workspace = true
+swarmlink-core.workspace = true
+swarmlink-proto.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
@@ -28,3 +28,4 @@ axum = { version = "0.8.4", features = ["ws"] }
 tower-http = { version = "0.7.0", features = ["fs"] }
 uuid = { version = "1.20.0", features = ["v4"] }
 tokio-stream = "0.1.19"
+zip = "7.2.0"

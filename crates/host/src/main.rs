@@ -8,7 +8,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use swarmdeck_core::SwarmConfig;
+use swarmlink_core::SwarmConfig;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{fmt::writer::Tee, EnvFilter};
 
@@ -17,7 +17,7 @@ use http::AppState;
 use registry::Registry;
 
 #[derive(Debug, Parser)]
-#[command(name = "swarmdeck", about = "SwarmDeck control host")]
+#[command(name = "swarmlink", about = "Swarmlink control host")]
 struct Args {
     /// Swarm configuration (TOML).
     #[arg(long)]

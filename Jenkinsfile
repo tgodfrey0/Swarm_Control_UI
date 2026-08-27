@@ -64,17 +64,17 @@ pipeline {
             parallel {
                 stage('Build Host') {
                     steps {
-                        sh 'cargo build --release -p swarmdeck-host'
+                        sh 'cargo build --release -p swarmlink-host'
                     }
                 }
                 stage('Build Agent') {
                     steps {
-                        sh 'cargo build --release -p swarmdeck-agent'
+                        sh 'cargo build --release -p swarmlink-agent'
                     }
                 }
                 stage('Build CLI') {
                     steps {
-                        sh 'cargo build --release -p swarmdeck-cli'
+                        sh 'cargo build --release -p swarmlink-cli'
                     }
                 }
             }
@@ -91,7 +91,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'test-results.xml, target/release/swarmdeck-host, target/release/swarmdeck-agent, target/release/swarmdeck-cli, target/aarch64-unknown-linux-musl/release/swarmdeck-agent, target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent, target/x86_64-unknown-linux-musl/release/swarmdeck-agent', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'test-results.xml, target/release/swarmlink-host, target/release/swarmlink-agent, target/release/swarmlink-cli, target/aarch64-unknown-linux-musl/release/swarmlink-agent, target/armv7-unknown-linux-musleabihf/release/swarmlink-agent, target/x86_64-unknown-linux-musl/release/swarmlink-agent', fingerprint: true, allowEmptyArchive: true
             cleanWs()
         }
     }

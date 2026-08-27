@@ -9,9 +9,9 @@ use tokio::time::{interval, sleep, Duration, MissedTickBehavior};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Code;
 
-use swarmdeck_core::AgentConfig;
-use swarmdeck_proto::v1::report::Report as ReportMsg;
-use swarmdeck_proto::v1::{
+use swarmlink_core::AgentConfig;
+use swarmlink_proto::v1::report::Report as ReportMsg;
+use swarmlink_proto::v1::{
     agent_client::AgentClient, ActionAck, Command, Register, Report, Status as StatusProto,
 };
 
@@ -128,7 +128,7 @@ async fn session_once(cfg: &AgentConfig, runner: Arc<Runner>) -> anyhow::Result<
 
 async fn handle_command(cmd: Command, runner: &Runner, report_tx: &mpsc::Sender<Report>) {
     match cmd.command {
-        Some(swarmdeck_proto::v1::command::Command::Run(run)) => {
+        Some(swarmlink_proto::v1::command::Command::Run(run)) => {
             let action_id = run.action_id.clone();
             match runner.spawn(run).await {
                 Ok(()) => {
@@ -141,11 +141,11 @@ async fn handle_command(cmd: Command, runner: &Runner, report_tx: &mpsc::Sender<
                 }
             }
         }
-        Some(swarmdeck_proto::v1::command::Command::Stop(stop)) => {
+        Some(swarmlink_proto::v1::command::Command::Stop(stop)) => {
             tracing::info!(action_id = %stop.action_id, "stop requested");
             runner.kill(&stop.action_id).await;
         }
-        Some(swarmdeck_proto::v1::command::Command::Ping(_)) => {
+        Some(swarmlink_proto::v1::command::Command::Ping(_)) => {
             let report = Report {
                 report: Some(ReportMsg::Heartbeat(Default::default())),
             };
@@ -174,7 +174,7 @@ async fn forward_event(ev: RunnerEvent, tx: &mpsc::Sender<Report>) {
             line,
         } => {
             let report = Report {
-                report: Some(ReportMsg::Log(swarmdeck_proto::v1::ActionLog {
+                report: Some(ReportMsg::Log(swarmlink_proto::v1::ActionLog {
                     action_id,
                     seq: 0,
                     data: line.into_bytes(),
@@ -196,7 +196,7 @@ async fn forward_event(ev: RunnerEvent, tx: &mpsc::Sender<Report>) {
             finished_ms,
         } => {
             let report = Report {
-                report: Some(ReportMsg::Result(swarmdeck_proto::v1::ActionResult {
+                report: Some(ReportMsg::Result(swarmlink_proto::v1::ActionResult {
                     action_id,
                     exit_code: exit_code.unwrap_or(1),
                     killed,

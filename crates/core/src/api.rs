@@ -1,5 +1,5 @@
 //! JSON types shared between the control host's HTTP/WS API and the CLI.
-//! Serialized with serde; the WebUI JS and `swarmdeck-cli` both consume these.
+//! Serialized with serde; the WebUI JS and `swarmlink-cli` both consume these.
 
 use serde::{Deserialize, Serialize};
 

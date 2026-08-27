@@ -1,4 +1,4 @@
-# SwarmDeck — build/test tasks. Run `just` (or `just --list`) to see them.
+# Swarmlink — build/test tasks. Run `just` (or `just --list`) to see them.
 # Binaries are run directly from bin/ (or target/<triple>/release for cross builds).
 
 default:
@@ -14,9 +14,9 @@ build:
 # Copy release binaries from target/release/ into bin/.
 _post-build:
     @mkdir -p bin
-    @cp --remove-destination -f target/release/swarmdeck bin/
-    @cp --remove-destination -f target/release/swarmdeck-agent bin/
-    @cp --remove-destination -f target/release/swarmdeck-cli bin/
+    @cp --remove-destination -f target/release/swarmlink bin/
+    @cp --remove-destination -f target/release/swarmlink-agent bin/
+    @cp --remove-destination -f target/release/swarmlink-cli bin/
 
 # Format all Rust code.
 fmt:
@@ -47,21 +47,21 @@ test: test-rust test-webui
 
 # Cross-compile a static musl agent for aarch64 Linux (RPi / Jetson, 64-bit OS).
 cross-compile-arm:
-    cargo zigbuild -p swarmdeck-agent --release --target aarch64-unknown-linux-musl
+    cargo zigbuild -p swarmlink-agent --release --target aarch64-unknown-linux-musl
     @mkdir -p bin
-    @cp --remove-destination -f target/aarch64-unknown-linux-musl/release/swarmdeck-agent bin/swarmdeck-agent-aarch64
+    @cp --remove-destination -f target/aarch64-unknown-linux-musl/release/swarmlink-agent bin/swarmlink-agent-aarch64
 
 # Cross-compile a static musl agent for armv7 Linux (32-bit Raspberry Pi OS).
 cross-compile-armv7:
-    cargo zigbuild -p swarmdeck-agent --release --target armv7-unknown-linux-musleabihf
+    cargo zigbuild -p swarmlink-agent --release --target armv7-unknown-linux-musleabihf
     @mkdir -p bin
-    @cp --remove-destination -f target/armv7-unknown-linux-musleabihf/release/swarmdeck-agent bin/swarmdeck-agent-armv7
+    @cp --remove-destination -f target/armv7-unknown-linux-musleabihf/release/swarmlink-agent bin/swarmlink-agent-armv7
 
 # Cross-compile a static musl agent for x86_64 Linux (SBCs / laptops).
 cross-compile-x86_64:
-    cargo zigbuild -p swarmdeck-agent --release --target x86_64-unknown-linux-musl
+    cargo zigbuild -p swarmlink-agent --release --target x86_64-unknown-linux-musl
     @mkdir -p bin
-    @cp --remove-destination -f target/x86_64-unknown-linux-musl/release/swarmdeck-agent bin/swarmdeck-agent-x86_64
+    @cp --remove-destination -f target/x86_64-unknown-linux-musl/release/swarmlink-agent bin/swarmlink-agent-x86_64
 
 # Cross-compile for all three targets (aarch64 + armv7 + x86_64).
 cross-compile-all: cross-compile-arm cross-compile-armv7 cross-compile-x86_64

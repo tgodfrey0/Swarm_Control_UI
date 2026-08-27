@@ -2,14 +2,14 @@
 
 ## Overview
 
-SwarmDeck follows a hub-and-spoke architecture: a single **control host** manages many **robot agents** over gRPC.
+Swarmlink follows a hub-and-spoke architecture: a single **control host** manages many **robot agents** over gRPC.
 
 ```
                     +----------------------------------------------+
                     |              control host (host crate)        |
                     |                                              |
   WebUI (browser) --+ HTTP+WS   /api/*, /api/ws                    |
-  swarmdeck-cli ----+          |                                   |
+  swarmlink-cli ----+          |                                   |
                     |          +-- dispatch engine --+              |
                     |          |                     | sends gRPC   |
                     |   gRPC server (tonic) <--------+ Commands     |
@@ -18,7 +18,7 @@ SwarmDeck follows a hub-and-spoke architecture: a single **control host** manage
                   +----------+-----------+                          |
                   v                       v                          |
           robot agent (RPis)      simulated agents (this host)     |
-   /opt/swarm-agent/swarmdeck-agent   same binary, local agent.toml|
+   /opt/swarm-agent/swarmlink-agent   same binary, local agent.toml|
    runs shell actions, streams logs   simulated = true in swarm    |
 ```
 
@@ -26,7 +26,7 @@ SwarmDeck follows a hub-and-spoke architecture: a single **control host** manage
 
 ### Control Host (`crates/host`)
 
-The binary `swarmdeck` runs:
+The binary `swarmlink` runs:
 - **gRPC server** (tonic): bidirectional `Session` stream with each agent
 - **Dispatch engine**: `RunStore` + `Dispatcher` for run/stop/adopt/release
 - **Registry**: central robot state, log ring, staleness sweeper
@@ -35,14 +35,14 @@ The binary `swarmdeck` runs:
 
 ### Robot Agent (`crates/agent`)
 
-The binary `swarmdeck-agent` runs on each robot:
+The binary `swarmlink-agent` runs on each robot:
 - **Session**: gRPC client, register, heartbeat, reconnect with exponential backoff
 - **Runner**: process group management (spawn, timeout, kill)
 - **Procfs**: lightweight `/proc` metrics (CPU, memory, uptime, battery)
 
 ### CLI (`crates/cli`)
 
-The binary `swarmdeck-cli` provides:
+The binary `swarmlink-cli` provides:
 - `status`, `run`, `stop`, `ps`, `logs`, `config`, `provision`
 - SSH provisioning: scp agent + config, install systemd unit
 

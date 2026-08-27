@@ -1,7 +1,7 @@
-# SwarmDeck backend API
+# Swarmlink backend API
 
-The control host (`swarmdeck-host`) is the backend. Every UI — the WebUI,
-`swarmdeck-cli`, and any future TUI — is a thin client over this HTTP/WebSocket
+The control host (`swarmlink-host`) is the backend. Every UI — the WebUI,
+`swarmlink-cli`, and any future TUI — is a thin client over this HTTP/WebSocket
 API. All JSON is snake_case. Responses are never cached (the host sets
 `Cache-Control: no-store` on `/` and `/static/*`).
 

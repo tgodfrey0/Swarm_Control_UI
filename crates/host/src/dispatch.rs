@@ -7,11 +7,11 @@ use std::sync::Arc;
 
 use tokio::sync::{broadcast, RwLock};
 
-use swarmdeck_core::{
+use swarmlink_core::{
     resolve_command, ApiTargets, ConfigError, Event, Result as CoreResult, RunRequest, RunResponse,
     RunRobotStatus, RunView, WorkflowOnFailure, WorkflowRunInfo,
 };
-use swarmdeck_proto::v1::{command::Command as CommandMsg, Command, RunAction, StopAction};
+use swarmlink_proto::v1::{command::Command as CommandMsg, Command, RunAction, StopAction};
 
 use crate::registry::{now_ms, Registry};
 
@@ -190,7 +190,7 @@ impl Dispatcher {
             (cfg.clone(), known)
         };
 
-        let resolved = swarmdeck_core::resolve(&cfg, &req.action, &req.targets, &known)?;
+        let resolved = swarmlink_core::resolve(&cfg, &req.action, &req.targets, &known)?;
 
         if resolved.dangerous && resolved.robots.len() > 1 && !req.confirm {
             return Err(ConfigError::ConfirmRequired {
@@ -304,7 +304,7 @@ impl Dispatcher {
     }
 
     /// Send a stop command to every targeted robot that is running something.
-    pub async fn stop(&self, req: swarmdeck_core::StopRequest) -> CoreResult<Vec<String>> {
+    pub async fn stop(&self, req: swarmlink_core::StopRequest) -> CoreResult<Vec<String>> {
         let (cfg, known) = {
             let cfg = self.registry.config.read().await;
             let known = self
@@ -317,7 +317,7 @@ impl Dispatcher {
                 .collect::<Vec<_>>();
             (cfg.clone(), known)
         };
-        let robots = swarmdeck_core::select_robots(&cfg, &req.targets, &known)?;
+        let robots = swarmlink_core::select_robots(&cfg, &req.targets, &known)?;
 
         let mut stopped = Vec::new();
         for robot in &robots {

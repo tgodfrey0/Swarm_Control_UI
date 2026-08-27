@@ -11,7 +11,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::{mpsc::UnboundedSender, Mutex, RwLock};
 use tokio::time::{interval, MissedTickBehavior};
 
-use swarmdeck_core::{
+use swarmlink_core::{
     ActiveView, ConfigError, Event, LogLine, Result, RobotConfig, RobotView, RunRobotStatus,
     SwarmConfig,
 };
@@ -66,7 +66,7 @@ pub struct RobotEntry {
     /// Background actions: action_id -> action_name. These don't count as
     /// "active" for concurrency but must be stoppable.
     pub background_actions: BTreeMap<String, String>,
-    pub cmd_tx: Option<UnboundedSender<swarmdeck_proto::v1::Command>>,
+    pub cmd_tx: Option<UnboundedSender<swarmlink_proto::v1::Command>>,
     cmd_tx_seq: u64,
     pub logs: LogRing,
 }
@@ -209,8 +209,8 @@ impl Registry {
     }
 
     /// Handle an incoming Report from a connected agent.
-    pub async fn handle_report(&self, robot_id: &str, report: &swarmdeck_proto::v1::Report) {
-        use swarmdeck_proto::v1::report::Report as M;
+    pub async fn handle_report(&self, robot_id: &str, report: &swarmlink_proto::v1::Report) {
+        use swarmlink_proto::v1::report::Report as M;
         let Some(msg) = &report.report else { return };
         let now = now_ms();
 
@@ -369,7 +369,7 @@ impl Registry {
     pub async fn set_cmd_tx(
         &self,
         robot_id: &str,
-        tx: UnboundedSender<swarmdeck_proto::v1::Command>,
+        tx: UnboundedSender<swarmlink_proto::v1::Command>,
     ) -> u64 {
         let seq = self.session_seq.fetch_add(1, Ordering::Relaxed);
         let mut robots = self.robots.write().await;
@@ -433,7 +433,7 @@ impl Registry {
     pub async fn cmd_tx(
         &self,
         robot_id: &str,
-    ) -> Option<UnboundedSender<swarmdeck_proto::v1::Command>> {
+    ) -> Option<UnboundedSender<swarmlink_proto::v1::Command>> {
         self.robots
             .read()
             .await
@@ -547,6 +547,18 @@ impl Registry {
             .get(robot_id)
             .map(|e| e.logs.tail(tail))
             .unwrap_or_default()
+    }
+
+    /// Snapshot every robot's full in-memory log buffer as `(robot_id, lines)`.
+    /// Used to export all agents' logs (e.g. as a zip download).
+    pub async fn export_logs(&self) -> Vec<(String, Vec<LogLine>)> {
+        let robots = self.robots.read().await;
+        let mut out: Vec<(String, Vec<LogLine>)> = robots
+            .iter()
+            .map(|(id, e)| (id.clone(), e.logs.tail(0)))
+            .collect();
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
     }
 
     /// Adopt a robot that phoned home but isn't in the config file.

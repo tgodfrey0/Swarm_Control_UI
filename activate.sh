@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rust toolchain bootstrap for SwarmDeck development.
+# Rust toolchain bootstrap for Swarmlink development.
 #
 # Installs the stable toolchain plus std libraries for non-host targets
 # (aarch64 / armv7 / x86_64 musl), which conda-forge/distro rust does not

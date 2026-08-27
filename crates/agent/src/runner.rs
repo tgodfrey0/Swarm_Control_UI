@@ -11,7 +11,7 @@ use tokio::io::AsyncBufReadExt;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::time::timeout;
 
-use swarmdeck_proto::v1::RunAction;
+use swarmlink_proto::v1::RunAction;
 
 #[derive(Debug)]
 pub enum RunnerEvent {

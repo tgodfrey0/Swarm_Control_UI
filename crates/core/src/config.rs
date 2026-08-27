@@ -305,7 +305,7 @@ pub struct RobotConfig {
     #[serde(default)]
     pub address: Option<String>,
     /// True for agents that run on this host (e.g. Gazebo/ROS2 sim nodes).
-    /// The provisioner skips them; `swarmdeck-cli sim` spawns them locally.
+    /// The provisioner skips them; `swarmlink-cli sim` spawns them locally.
     #[serde(default)]
     pub simulated: bool,
     /// Per-robot values available as `{{vars.<key>}}` in action commands.
@@ -327,7 +327,7 @@ impl RobotConfig {
 }
 
 /// Runtime configuration written to `/etc/swarm-agent/agent.toml` by the
-/// provisioner and read by `swarmdeck-agent`.
+/// provisioner and read by `swarmlink-agent`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentConfig {
@@ -427,7 +427,7 @@ mod tests {
     /// Write files under a unique temp dir and load the entry point.
     fn load(files: &[(&str, &str)], entry: &str) -> Result<AgentConfig> {
         let dir = std::env::temp_dir().join(format!(
-            "swarmdeck-agent-cfg-{}-{}",
+            "swarmlink-agent-cfg-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

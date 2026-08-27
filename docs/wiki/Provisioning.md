@@ -1,6 +1,6 @@
 # Provisioning
 
-`swarmdeck-cli provision` deploys the agent to real robots over SSH.
+`swarmlink-cli provision` deploys the agent to real robots over SSH.
 
 ## How It Works
 
@@ -8,7 +8,7 @@ For each configured robot (with `address` and `simulated = false`):
 
 1. SCP the agent binary to the robot
 2. Write `/etc/swarm-agent/agent.toml`
-3. Install and start the `swarmdeck-agent.service` systemd unit
+3. Install and start the `swarmlink-agent.service` systemd unit
 
 ## Prerequisites
 
@@ -20,26 +20,26 @@ For each configured robot (with `address` and `simulated = false`):
 
 ```sh
 # Provision all robots in a swarm
-SWARMDECK_AGENT_BIN=target/aarch64-unknown-linux-musl/release/swarmdeck-agent \
-  swarmdeck-cli provision --config configs/lab/swarm.toml --user pi
+SWARMLINK_AGENT_BIN=target/aarch64-unknown-linux-musl/release/swarmlink-agent \
+  swarmlink-cli provision --config configs/lab/swarm.toml --user pi
 
 # Specific robots only
-SWARMDECK_CONTROLLER_ENDPOINT=100.64.0.1:50051 \
-  swarmdeck-cli provision --robots tb-01,tb-02
+SWARMLINK_CONTROLLER_ENDPOINT=100.64.0.1:50051 \
+  swarmlink-cli provision --robots tb-01,tb-02
 ```
 
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `SWARMDECK_AGENT_BIN` | Path to agent binary (default: `target/aarch64-unknown-linux-musl/release/swarmdeck-agent`) |
-| `SWARMDECK_CONTROLLER_ENDPOINT` | Override gRPC endpoint for the controller |
+| `SWARMLINK_AGENT_BIN` | Path to agent binary (default: `target/aarch64-unknown-linux-musl/release/swarmlink-agent`) |
+| `SWARMLINK_CONTROLLER_ENDPOINT` | Override gRPC endpoint for the controller |
 
 ## What Gets Installed
 
 ### Agent Binary
 
-Installed to `/opt/swarm-agent/swarmdeck-agent`
+Installed to `/opt/swarm-agent/swarmlink-agent`
 
 ### Agent Config
 
@@ -56,15 +56,15 @@ tls      = false
 
 ### Systemd Unit
 
-`/etc/systemd/system/swarmdeck-agent.service`:
+`/etc/systemd/system/swarmlink-agent.service`:
 
 ```ini
 [Unit]
-Description=SwarmDeck Agent
+Description=Swarmlink Agent
 After=network.target
 
 [Service]
-ExecStart=/opt/swarm-agent/swarmdeck-agent --config /etc/swarm-agent/agent.toml
+ExecStart=/opt/swarm-agent/swarmlink-agent --config /etc/swarm-agent/agent.toml
 Restart=always
 RestartSec=3
 
@@ -81,5 +81,5 @@ Robots are skipped if:
 ## Example
 
 ```sh
-./bin/swarmdeck-cli provision --config configs/lab/swarm.toml --user pi --robots tb-01
+./bin/swarmlink-cli provision --config configs/lab/swarm.toml --user pi --robots tb-01
 ```

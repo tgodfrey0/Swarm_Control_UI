@@ -2,7 +2,7 @@
 
 ## Overview
 
-SwarmDeck is designed for trusted lab environments. This page covers security considerations and hardening options.
+Swarmlink is designed for trusted lab environments. This page covers security considerations and hardening options.
 
 ## Authentication
 

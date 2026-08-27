@@ -1,6 +1,6 @@
 # Cross-Compilation
 
-SwarmDeck cross-compiles static musl agent binaries for ARM and x86_64 Linux robots using `cargo-zigbuild`. No Docker required.
+Swarmlink cross-compiles static musl agent binaries for ARM and x86_64 Linux robots using `cargo-zigbuild`. No Docker required.
 
 ## Prerequisites
 
@@ -12,15 +12,15 @@ SwarmDeck cross-compiles static musl agent binaries for ARM and x86_64 Linux rob
 ```sh
 # Primary target: 64-bit Raspberry Pi / Jetson
 just compile-arm
-# Output: bin/swarmdeck-agent-aarch64
+# Output: bin/swarmlink-agent-aarch64
 
 # 32-bit Raspberry Pi OS
 just compile-armv7
-# Output: bin/swarmdeck-agent-armv7
+# Output: bin/swarmlink-agent-armv7
 
 # x86_64 SBCs / laptops
 just compile-x86_64
-# Output: bin/swarmdeck-agent-x86_64
+# Output: bin/swarmlink-agent-x86_64
 
 # All three at once
 just compile-all

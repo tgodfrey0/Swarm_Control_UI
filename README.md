@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/tgodfrey0/Swarm_Control_UI/main/assets/logo-banner.svg" alt="SwarmDeck" width="320">
+  <img src="https://raw.githubusercontent.com/tgodfrey0/Swarm_Control_UI/main/assets/logo-banner.svg" alt="Swarmlink" width="320">
 </p>
 
 <p align="center">
@@ -32,11 +32,11 @@ Prerequisites: [just](https://github.com/casey/just) (build/test tasks), Rust 1.
 just build
 
 # Start sim host (WebUI at http://localhost:18082)
-./bin/swarmdeck --config configs/sim/swarm.toml
+./bin/swarmlink --config configs/sim/swarm.toml
 
 # Start two simulated robots (each in its own terminal)
-./bin/swarmdeck-agent --config configs/sim/agent-1.toml
-./bin/swarmdeck-agent --config configs/sim/agent-2.toml
+./bin/swarmlink-agent --config configs/sim/agent-1.toml
+./bin/swarmlink-agent --config configs/sim/agent-2.toml
 ```
 
 ## Documentation
@@ -74,14 +74,14 @@ just build
 The CLI provisions robots over SSH — copies the binary, writes the config, and installs the systemd unit:
 
 ```sh
-./bin/swarmdeck-cli provision --config configs/lab/swarm.toml                        # all robots in configs/lab
-./bin/swarmdeck-cli provision --config configs/lab/swarm.toml --robots tb-01,tb-02   # specific robots only
-./bin/swarmdeck-cli provision --config configs/lab/swarm.toml --user pi              # non-root SSH user
+./bin/swarmlink-cli provision --config configs/lab/swarm.toml                        # all robots in configs/lab
+./bin/swarmlink-cli provision --config configs/lab/swarm.toml --robots tb-01,tb-02   # specific robots only
+./bin/swarmlink-cli provision --config configs/lab/swarm.toml --user pi              # non-root SSH user
 ```
 
 Environment variables:
-- `SWARMDECK_CONTROLLER_ENDPOINT` — override the agent-to-host endpoint (e.g. `100.64.0.1:50051`)
-- `SWARMDECK_AGENT_BIN` — path to the cross-compiled binary (default: `bin/swarmdeck-agent-aarch64`)
+- `SWARMLINK_CONTROLLER_ENDPOINT` — override the agent-to-host endpoint (e.g. `100.64.0.1:50051`)
+- `SWARMLINK_AGENT_BIN` — path to the cross-compiled binary (default: `bin/swarmlink-agent-aarch64`)
 
 ### Manual Install
 
@@ -89,13 +89,13 @@ On the robot, run the install script:
 
 ```sh
 ./deploy/install-agent.sh                           # auto-detect binary + default config
-./deploy/install-agent.sh --bin /path/to/swarmdeck-agent  # explicit binary
+./deploy/install-agent.sh --bin /path/to/swarmlink-agent  # explicit binary
 ```
 
 This installs:
-- Binary → `/opt/swarm-agent/swarmdeck-agent`
+- Binary → `/opt/swarm-agent/swarmlink-agent`
 - Config → `/etc/swarm-agent/agent.toml` (creates a placeholder if missing — **edit it**)
-- Service → `/etc/systemd/system/swarmdeck-agent.service`
+- Service → `/etc/systemd/system/swarmlink-agent.service`
 
 ### systemd Commands
 
@@ -104,15 +104,15 @@ This installs:
 sudo nano /etc/swarm-agent/agent.toml
 
 # Start / stop / restart
-sudo systemctl start swarmdeck-agent
-sudo systemctl stop swarmdeck-agent
-sudo systemctl restart swarmdeck-agent
+sudo systemctl start swarmlink-agent
+sudo systemctl stop swarmlink-agent
+sudo systemctl restart swarmlink-agent
 
 # Enable on boot
-sudo systemctl enable swarmdeck-agent
+sudo systemctl enable swarmlink-agent
 
 # View live logs (journal)
-journalctl -u swarmdeck-agent -f
+journalctl -u swarmlink-agent -f
 
 # View log files on disk
 ls /opt/swarm-agent/logs/
@@ -156,14 +156,14 @@ robot_id = "tb-01"
 as a flag:
 
 ```sh
-./bin/swarmdeck-agent --config agent-base.toml --robot-id sim-01
-./bin/swarmdeck-agent --config agent-base.toml --robot-id sim-02
+./bin/swarmlink-agent --config agent-base.toml --robot-id sim-01
+./bin/swarmlink-agent --config agent-base.toml --robot-id sim-02
 ```
 
 ### Logs
 
 By default the agent logs to:
-- **stdout** — captured by systemd (`journalctl -u swarmdeck-agent`)
+- **stdout** — captured by systemd (`journalctl -u swarmlink-agent`)
 - **`logs/` directory** — rotated daily as `{config-name}-{YYYYMMDD-HHMMSS}.log` in the service's working directory (`/opt/swarm-agent/logs/`)
 
 ## Components

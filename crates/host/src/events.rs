@@ -3,7 +3,7 @@
 
 use tokio::sync::broadcast;
 
-use swarmdeck_core::Event;
+use swarmlink_core::Event;
 
 #[derive(Clone)]
 pub struct EventBus {

@@ -44,6 +44,7 @@ async function init() {
   bindLogDownload();
   bindThemeToggle();
   bindClearAll();
+  bindExportLogs();
   connectWs();
 }
 
@@ -82,7 +83,7 @@ async function fetchConfig() {
   const name = cfg && cfg.controller ? cfg.controller : "";
   const el = $("controller-name");
   if (el) el.textContent = name;
-  if (name) document.title = `SwarmDeck — ${name}`;
+  if (name) document.title = `Swarmlink — ${name}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,7 +94,7 @@ function renderRobots() {
   grid.innerHTML = "";
   const robots = [...state.robots.values()].sort((a, b) => naturalCompare(a.id, b.id));
   if (robots.length === 0) {
-    grid.innerHTML = '<p class="muted">No robots yet. Start an agent (or run <code>swarmdeck-cli sim</code>).</p>';
+    grid.innerHTML = '<p class="muted">No robots yet. Start an agent (or run <code>swarmlink-cli sim</code>).</p>';
     return;
   }
   for (const r of robots) {
@@ -585,6 +586,35 @@ function bindClearAll() {
         }
       }
     );
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Download all logs (zip)
+// ---------------------------------------------------------------------------
+function bindExportLogs() {
+  const btn = $("export-logs");
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = "Fetching…";
+    try {
+      const res = await fetch("/api/export/logs");
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `swarmlink-logs-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showModal("Download failed", String(e.message || e));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Download Logs";
+    }
   };
 }
 

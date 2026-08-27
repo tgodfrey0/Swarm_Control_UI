@@ -1,19 +1,19 @@
 [package]
-name = "swarmdeck-agent"
+name = "swarmlink-agent"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "SwarmDeck agent: runs on each robot, executes commands from the control host"
+description = "Swarmlink agent: runs on each robot, executes commands from the control host"
 
 [[bin]]
-name = "swarmdeck-agent"
+name = "swarmlink-agent"
 path = "src/main.rs"
 
 [dependencies]
-swarmdeck-core.workspace = true
-swarmdeck-proto.workspace = true
+swarmlink-core.workspace = true
+swarmlink-proto.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

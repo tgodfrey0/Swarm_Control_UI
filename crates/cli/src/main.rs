@@ -3,11 +3,11 @@ use std::path::PathBuf;
 use anyhow::bail;
 use clap::{Parser, Subcommand};
 
-use swarmdeck_client::{Client, ClientError};
-use swarmdeck_core::{ApiTargets, RunRobotStatus};
+use swarmlink_client::{Client, ClientError};
+use swarmlink_core::{ApiTargets, RunRobotStatus};
 
 #[derive(Debug, Parser)]
-#[command(name = "swarmdeck-cli", about = "SwarmDeck command-line client")]
+#[command(name = "swarmlink-cli", about = "Swarmlink command-line client")]
 struct Cli {
     /// Control host HTTP endpoint (the host's WebUI/API address).
     #[arg(long, global = true, default_value = "http://127.0.0.1:8080")]
@@ -155,7 +155,7 @@ async fn main() -> anyhow::Result<()> {
             robot_types,
         } => {
             let types_dir = Some(robot_types);
-            let cfg = swarmdeck_core::SwarmConfig::from_files(&config, types_dir.as_deref())?;
+            let cfg = swarmlink_core::SwarmConfig::from_files(&config, types_dir.as_deref())?;
             println!(
                 "config OK: {} controller, {} robot types, {} robots",
                 cfg.controller.name,
@@ -258,7 +258,7 @@ async fn cmd_run(
     json: bool,
     background: bool,
 ) -> anyhow::Result<()> {
-    let req = swarmdeck_core::RunRequest {
+    let req = swarmlink_core::RunRequest {
         action: action.clone(),
         targets,
         timeout_sec: None,
@@ -274,7 +274,7 @@ async fn cmd_run(
                 println!("{message}");
                 confirm(false, "run anyway?").await?;
             }
-            let retry = swarmdeck_core::RunRequest {
+            let retry = swarmlink_core::RunRequest {
                 confirm: true,
                 ..req
             };
@@ -424,7 +424,7 @@ async fn cmd_logs(client: &Client, robot: &str, tail: usize, follow: bool) -> an
         use futures_util::StreamExt;
         while let Some(ev) = stream.next().await {
             match ev {
-                Ok(swarmdeck_core::Event::Logs { robot: r, lines }) if r == robot => {
+                Ok(swarmlink_core::Event::Logs { robot: r, lines }) if r == robot => {
                     for l in lines {
                         if l.ts_ms > last_ts {
                             last_ts = l.ts_ms;

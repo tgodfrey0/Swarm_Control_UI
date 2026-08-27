@@ -12,7 +12,7 @@
 
 ```sh
 git clone <repo-url>
-cd swarmdeck
+cd swarmlink
 ./activate.sh   # idempotent: installs the stable toolchain and musl targets
 ```
 
@@ -28,19 +28,19 @@ Binaries are run directly from `bin/`:
 
 ```sh
 # Control host (WebUI at localhost:8080)
-./bin/swarmdeck --config configs/lab/swarm.toml
+./bin/swarmlink --config configs/lab/swarm.toml
 
 # Simulated swarm (WebUI at localhost:18082)
-./bin/swarmdeck --config configs/sim/swarm.toml
+./bin/swarmlink --config configs/sim/swarm.toml
 
 # Robot agent
-./bin/swarmdeck-agent --config /etc/swarm-agent/agent.toml
+./bin/swarmlink-agent --config /etc/swarm-agent/agent.toml
 
 # Simulated agent
-./bin/swarmdeck-agent --config configs/sim/agent-1.toml
+./bin/swarmlink-agent --config configs/sim/agent-1.toml
 
 # CLI
-./bin/swarmdeck-cli --host http://127.0.0.1:18082 status
+./bin/swarmlink-cli --host http://127.0.0.1:18082 status
 ```
 
 ## Code Quality

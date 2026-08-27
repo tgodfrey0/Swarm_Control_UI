@@ -1,4 +1,4 @@
-//! HTTP + WebSocket API for the WebUI and `swarmdeck-cli`.
+//! HTTP + WebSocket API for the WebUI and `swarmlink-cli`.
 //!
 //! JSON routes:
 //!   GET  /api/robots            -> Vec<RobotView>
@@ -14,12 +14,14 @@
 //!   POST /api/adopt/{robot}     -> {}
 //!   POST /api/release/{robot}   -> {}
 //!   GET  /api/robots/{id}/logs  -> Vec<LogLine>
+//!   GET  /api/export/logs       -> zip of every robot's logs (attachment)
 //!   GET  /api/ws                -> live Event stream (text JSON)
 //!
 //! Static / WebUI:
 //!   GET /            -> index.html
 //!   GET /static/*    -> ui/static assets
 
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -33,7 +35,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 
-use swarmdeck_core::{ActionsView, AdoptRequest, Event, RunRequest, RunResponse, StopRequest, WorkflowRunRequest};
+use swarmlink_core::{ActionsView, AdoptRequest, Event, RunRequest, RunResponse, StopRequest, WorkflowRunRequest};
 
 use crate::dispatch::Dispatcher;
 use crate::registry::Registry;
@@ -75,6 +77,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/adopt/{robot}", post(adopt_robot))
         .route("/api/release/{robot}", post(release_robot))
         .route("/api/robots/{robot}/logs", get(robot_logs))
+        .route("/api/export/logs", get(export_logs))
         .route("/api/ws", get(ws_upgrade))
         .route("/static/{*path}", get(static_asset))
         .with_state(state)
@@ -125,7 +128,7 @@ async fn static_asset(Path(path): Path<String>) -> Result<impl IntoResponse, Sta
     Ok(response)
 }
 
-async fn list_robots(State(state): State<AppState>) -> Json<Vec<swarmdeck_core::RobotView>> {
+async fn list_robots(State(state): State<AppState>) -> Json<Vec<swarmlink_core::RobotView>> {
     Json(state.registry.all_views().await)
 }
 
@@ -168,14 +171,14 @@ async fn list_actions(State(state): State<AppState>) -> Json<ActionsView> {
     })
 }
 
-async fn list_runs(State(state): State<AppState>) -> Json<Vec<swarmdeck_core::RunView>> {
+async fn list_runs(State(state): State<AppState>) -> Json<Vec<swarmlink_core::RunView>> {
     Json(state.registry.run_store.recent(50).await)
 }
 
 async fn get_run(
     State(state): State<AppState>,
     Path(run_id): Path<String>,
-) -> ApiResult<Json<swarmdeck_core::RunView>> {
+) -> ApiResult<Json<swarmlink_core::RunView>> {
     state
         .registry
         .run_store
@@ -185,11 +188,11 @@ async fn get_run(
         .ok_or_else(|| (StatusCode::NOT_FOUND, format!("no such run: {run_id}")))
 }
 
-async fn get_config(State(state): State<AppState>) -> Json<swarmdeck_core::ConfigView> {
+async fn get_config(State(state): State<AppState>) -> Json<swarmlink_core::ConfigView> {
     let cfg = state.registry.config.read().await;
     let mut robot_types: Vec<String> = cfg.robot_types.keys().cloned().collect();
     robot_types.sort();
-    Json(swarmdeck_core::ConfigView {
+    Json(swarmlink_core::ConfigView {
         controller: cfg.controller.name.clone(),
         robot_types,
         robot_count: cfg.robots.len(),
@@ -216,9 +219,61 @@ async fn robot_logs(
     State(state): State<AppState>,
     Path(robot): Path<String>,
     Query(q): Query<LogsQuery>,
-) -> ApiResult<Json<Vec<swarmdeck_core::LogLine>>> {
+) -> ApiResult<Json<Vec<swarmlink_core::LogLine>>> {
     let lines = state.registry.logs(&robot, q.tail).await;
     Ok(Json(lines))
+}
+
+/// Build and return a zip of every robot's in-memory logs, one `<robot>.log`
+/// file per robot. Streamed to the client for direct download.
+async fn export_logs(State(state): State<AppState>) -> ApiResult<impl IntoResponse> {
+    use std::io::Cursor;
+    use zip::write::SimpleFileOptions;
+
+    let logs = state.registry.export_logs().await;
+    let mut buf = Cursor::new(Vec::new());
+    {
+        let mut zw = zip::ZipWriter::new(&mut buf);
+        let opts = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        if logs.is_empty() {
+            zw.add_directory("logs/", opts).map_err(err)?;
+        }
+        for (robot_id, lines) in &logs {
+            let name = format!("{robot_id}.log");
+            let mut text = String::new();
+            for l in lines {
+                text.push_str(&format!("{}[{}] {}\n", if l.stderr { "ERR " } else { "" }, format_log_ts(l.ts_ms), l.text));
+            }
+            zw.start_file(name, opts).map_err(err)?;
+            zw.write_all(text.as_bytes()).map_err(err)?;
+        }
+        zw.finish().map_err(err)?;
+    }
+
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
+    let filename = format!("swarmlink-logs-{ts}.zip");
+    let mut response = (StatusCode::OK, buf.into_inner()).into_response();
+    response.headers_mut().insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("application/zip"),
+    );
+    response.headers_mut().insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_str(&format!("attachment; filename=\"{filename}\""))
+            .map_err(err)?,
+    );
+    Ok(response)
+}
+
+/// Format a unix-millisecond timestamp as `HH:MM:SS` (local time).
+fn format_log_ts(ts_ms: u64) -> String {
+    use chrono::TimeZone;
+    chrono::Local
+        .timestamp_millis_opt(ts_ms as i64)
+        .single()
+        .map(|t| t.format("%H:%M:%S").to_string())
+        .unwrap_or_default()
 }
 
 async fn run_action(

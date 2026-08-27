@@ -1,8 +1,8 @@
-# SwarmDeck
+# Swarmlink
 
 **Config-driven swarm robotics control deck: WebUI + HTTP/WS API + CLI**
 
-SwarmDeck is a control host that maintains gRPC sessions with every robot agent, executes shell actions across the swarm, and exposes a live WebUI, HTTP/WebSocket API, and CLI.
+Swarmlink is a control host that maintains gRPC sessions with every robot agent, executes shell actions across the swarm, and exposes a live WebUI, HTTP/WebSocket API, and CLI.
 
 ## Key Features
 
@@ -21,11 +21,11 @@ Prerequisites: [just](https://github.com/casey/just), Rust 1.85+ (via [rustup](h
 just build
 
 # Start sim host (WebUI at http://localhost:18082)
-./bin/swarmdeck --config configs/sim/swarm.toml
+./bin/swarmlink --config configs/sim/swarm.toml
 
 # Start two simulated robots
-./bin/swarmdeck-agent --config configs/sim/agent-1.toml
-./bin/swarmdeck-agent --config configs/sim/agent-2.toml
+./bin/swarmlink-agent --config configs/sim/agent-1.toml
+./bin/swarmlink-agent --config configs/sim/agent-2.toml
 ```
 
 ## Wiki Pages

@@ -110,6 +110,8 @@ const TAGS = {
   "modal-close": "button",
   "modal-cancel": "button",
   "theme-toggle": "button",
+  "clear-all": "button",
+  "export-logs": "button",
   "robots": "div",
   "runs": "div",
   "run-result": "div",
@@ -329,6 +331,8 @@ setTimeout(() => {
     assert(typeof getEl("log-copy").onclick === "function", "log-copy bound");
     assert(typeof getEl("log-download").onclick === "function", "log-download bound");
     assert(typeof getEl("log-follow").onclick === "function", "log-follow bound");
+    // Header export button downloads the all-robots log zip.
+    assert(typeof getEl("export-logs").onclick === "function", "export-logs bound");
 
     // ANSI SGR codes become styled spans; raw escapes never reach the DOM.
     // (app.js is eval'd in strict mode above, so its declarations don't leak

@@ -1,6 +1,6 @@
 # Configuration
 
-SwarmDeck uses TOML configuration files organised in directories.
+Swarmlink uses TOML configuration files organised in directories.
 
 ## Directory Structure
 
@@ -85,7 +85,7 @@ timeout_sec = 300
 ```
 
 ```sh
-swarmdeck-cli run start_trial --all --yes
+swarmlink-cli run start_trial --all --yes
 ```
 
 ## Workflows
@@ -130,8 +130,8 @@ steps = [
 ```
 
 ```sh
-swarmdeck-cli workflow deploy_fleet
-swarmdeck-cli workflow deploy_fleet --yes
+swarmlink-cli workflow deploy_fleet
+swarmlink-cli workflow deploy_fleet --yes
 ```
 
 ## Template Placeholders

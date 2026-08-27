@@ -10,7 +10,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::StreamExt;
 use tonic::{Request, Response, Status, Streaming};
 
-use swarmdeck_proto::v1::{
+use swarmlink_proto::v1::{
     agent_server::{Agent, AgentServer},
     report::Report as ReportMsg,
     Command, Report,

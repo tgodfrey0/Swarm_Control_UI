@@ -14,7 +14,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.85"
 license = "MIT"
-authors = ["SwarmDeck contributors"]
+authors = ["Swarmlink contributors"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -33,6 +33,6 @@ tokio-stream = "0.1"
 futures-util = "0.3"
 tokio-tungstenite = "0.26"
 
-swarmdeck-core = { path = "crates/core" }
-swarmdeck-proto = { path = "proto" }
-swarmdeck-client = { path = "crates/client" }
+swarmlink-core = { path = "crates/core" }
+swarmlink-proto = { path = "proto" }
+swarmlink-client = { path = "crates/client" }

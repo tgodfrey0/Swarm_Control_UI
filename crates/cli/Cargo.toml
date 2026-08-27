@@ -1,19 +1,19 @@
 [package]
-name = "swarmdeck-cli"
+name = "swarmlink-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "SwarmDeck command-line client: batch dispatch, status, logs, provisioning"
+description = "Swarmlink command-line client: batch dispatch, status, logs, provisioning"
 
 [[bin]]
-name = "swarmdeck-cli"
+name = "swarmlink-cli"
 path = "src/main.rs"
 
 [dependencies]
-swarmdeck-core.workspace = true
-swarmdeck-client.workspace = true
+swarmlink-core.workspace = true
+swarmlink-client.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

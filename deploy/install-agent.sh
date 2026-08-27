@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# install-agent.sh — Install the SwarmDeck agent + systemd service on this machine.
+# install-agent.sh — Install the Swarmlink agent + systemd service on this machine.
 #
 # Usage:
 #   ./deploy/install-agent.sh [OPTIONS]
 #
 # Options:
-#   --bin <path>        Path to the swarmdeck-agent binary (default: auto-detect from target/)
+#   --bin <path>        Path to the swarmlink-agent binary (default: auto-detect from target/)
 #   --config <path>     Path to agent.toml (default: /etc/swarm-agent/agent.toml)
 #   --help              Show this help message
 #
@@ -41,16 +41,16 @@ done
 # --- Resolve the binary ----------------------------------------------------
 if [[ -z "$BIN_PATH" ]]; then
     for candidate in \
-        "$REPO_ROOT/bin/swarmdeck-agent" \
-        "$REPO_ROOT/target/release/swarmdeck-agent" \
-        "$REPO_ROOT/target/debug/swarmdeck-agent"; do
+        "$REPO_ROOT/bin/swarmlink-agent" \
+        "$REPO_ROOT/target/release/swarmlink-agent" \
+        "$REPO_ROOT/target/debug/swarmlink-agent"; do
         if [[ -x "$candidate" ]]; then
             BIN_PATH="$candidate"
             break
         fi
     done
     if [[ -z "$BIN_PATH" ]]; then
-        echo "error: no swarmdeck-agent binary found. Build first (just build) or pass --bin." >&2
+        echo "error: no swarmlink-agent binary found. Build first (just build) or pass --bin." >&2
         exit 1
     fi
 fi
@@ -70,9 +70,9 @@ fi
 echo "Using config: $CONFIG_PATH"
 
 # --- Install binary ---------------------------------------------------------
-echo "Installing binary to /opt/swarm-agent/swarmdeck-agent ..."
+echo "Installing binary to /opt/swarm-agent/swarmlink-agent ..."
 sudo mkdir -p /opt/swarm-agent
-sudo install -m 0755 "$BIN_PATH" /opt/swarm-agent/swarmdeck-agent
+sudo install -m 0755 "$BIN_PATH" /opt/swarm-agent/swarmlink-agent
 
 # --- Install config ---------------------------------------------------------
 if [[ -f "$CONFIG_PATH" ]]; then
@@ -95,33 +95,33 @@ fi
 
 # --- Install systemd service ------------------------------------------------
 echo "Installing systemd service ..."
-sudo tee /etc/systemd/system/swarmdeck-agent.service >/dev/null <<'EOF'
+sudo tee /etc/systemd/system/swarmlink-agent.service >/dev/null <<'EOF'
 [Unit]
-Description=SwarmDeck robot agent
+Description=Swarmlink robot agent
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/swarm-agent/swarmdeck-agent --config /etc/swarm-agent/agent.toml
+ExecStart=/opt/swarm-agent/swarmlink-agent --config /etc/swarm-agent/agent.toml
 WorkingDirectory=/opt/swarm-agent
 Restart=always
 RestartSec=3
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=swarmdeck-agent
+SyslogIdentifier=swarmlink-agent
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable swarmdeck-agent.service
+sudo systemctl enable swarmlink-agent.service
 
 echo ""
 echo "Done. The service is installed but not started yet."
 echo ""
-echo "  Start now:      sudo systemctl start swarmdeck-agent"
-echo "  Check status:   sudo systemctl status swarmdeck-agent"
-echo "  View logs:      journalctl -u swarmdeck-agent -f"
+echo "  Start now:      sudo systemctl start swarmlink-agent"
+echo "  Check status:   sudo systemctl status swarmlink-agent"
+echo "  View logs:      journalctl -u swarmlink-agent -f"
 echo "  Logs on disk:   ls /opt/swarm-agent/logs/"

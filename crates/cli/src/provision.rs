@@ -6,7 +6,7 @@ use std::process::Command;
 
 use anyhow::{bail, Context};
 
-use swarmdeck_core::{RobotConfig, SwarmConfig};
+use swarmlink_core::{RobotConfig, SwarmConfig};
 
 pub fn provision(
     swarm_file: &Path,
@@ -22,12 +22,12 @@ pub fn provision(
 
     // Derive the endpoint agents should dial from the CLI --host, or the
     // controller's configured listener (falling back to a local address).
-    let controller = std::env::var("SWARMDECK_CONTROLLER_ENDPOINT").ok().unwrap_or_else(|| {
+    let controller = std::env::var("SWARMLINK_CONTROLLER_ENDPOINT").ok().unwrap_or_else(|| {
         // The agent config needs a routable host:port. Prefer a Tailscale
         // style address on the listener if present, otherwise the loopback.
         let ip = cfg.controller.grpc_listen.ip();
         let ip = if ip.is_unspecified() {
-            std::env::var("SWARMDECK_CONTROLLER_IP")
+            std::env::var("SWARMLINK_CONTROLLER_IP")
                 .unwrap_or_else(|_| "127.0.0.1".to_string())
         } else {
             ip.to_string()
@@ -35,8 +35,8 @@ pub fn provision(
         format!("{ip}:{}", cfg.controller.grpc_listen.port())
     });
 
-    let binary = std::env::var("SWARMDECK_AGENT_BIN")
-        .unwrap_or_else(|_| "bin/swarmdeck-agent-aarch64".to_string());
+    let binary = std::env::var("SWARMLINK_AGENT_BIN")
+        .unwrap_or_else(|_| "bin/swarmlink-agent-aarch64".to_string());
 
     let mut targets: Vec<&RobotConfig> = cfg
         .robots
@@ -65,8 +65,8 @@ pub fn provision(
         println!("── provisioning {robot_id} ({host})", robot_id = robot.id);
 
         // 1. Agent binary.
-        run_ssh(&hoststr, "mkdir -p /opt/swarm-agent /etc/swarm-agent /tmp/.swarmdeck")?;
-        run_scp(&binary, &format!("{hoststr}:/tmp/.swarmdeck/swarmdeck-agent"))?;
+        run_ssh(&hoststr, "mkdir -p /opt/swarm-agent /etc/swarm-agent /tmp/.swarmlink")?;
+        run_scp(&binary, &format!("{hoststr}:/tmp/.swarmlink/swarmlink-agent"))?;
 
         // 2. agent.toml (robot_id + controller endpoint + shared secret).
         let agent_toml = format!(
@@ -74,19 +74,19 @@ pub fn provision(
             robot.id, controller, cfg.controller.id_code
         );
         let script = format!(
-            "cat > /tmp/.swarmdeck/agent.toml <<'EOF'\n{agent_toml}EOF\n\
-             install -m 0755 /tmp/.swarmdeck/swarmdeck-agent /opt/swarm-agent/swarmdeck-agent\n\
-             install -m 0600 /tmp/.swarmdeck/agent.toml /etc/swarm-agent/agent.toml\n"
+            "cat > /tmp/.swarmlink/agent.toml <<'EOF'\n{agent_toml}EOF\n\
+             install -m 0755 /tmp/.swarmlink/swarmlink-agent /opt/swarm-agent/swarmlink-agent\n\
+             install -m 0600 /tmp/.swarmlink/agent.toml /etc/swarm-agent/agent.toml\n"
         );
         run_ssh(&hoststr, &script)?;
 
         // 3. systemd unit + start.
-        let unit = include_str!("swarmdeck-agent.service");
+        let unit = include_str!("swarmlink-agent.service");
         let script = format!(
-            "cat > /etc/systemd/system/swarmdeck-agent.service <<'EOF'\n{unit}EOF\n\
+            "cat > /etc/systemd/system/swarmlink-agent.service <<'EOF'\n{unit}EOF\n\
              systemctl daemon-reload\n\
-             systemctl enable --now swarmdeck-agent.service\n\
-             systemctl --no-pager --lines=5 status swarmdeck-agent.service || true\n"
+             systemctl enable --now swarmlink-agent.service\n\
+             systemctl --no-pager --lines=5 status swarmlink-agent.service || true\n"
         );
         run_ssh(&hoststr, &script)?;
     }

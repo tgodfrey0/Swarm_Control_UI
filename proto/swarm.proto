@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package swarmdeck.v1;
+package swarmlink.v1;
 
 // A robot agent establishes one long-lived bidirectional stream to the
 // control host. The agent is deliberately generic: it executes shell

@@ -4,7 +4,7 @@
 
 use serde_json::{json, Value};
 
-use swarmdeck_core::{
+use swarmlink_core::{
     ActionsView, AdoptRequest, ApiTargets, ConfigView, Event, RunRequest, RunResponse,
     RunRobotStatus, RunView, StopRequest,
 };
@@ -160,8 +160,8 @@ fn response_round_trips() {
     assert_eq!(r.robots.len(), 1);
 }
 
-fn default_robot() -> swarmdeck_core::RobotView {
-    swarmdeck_core::RobotView {
+fn default_robot() -> swarmlink_core::RobotView {
+    swarmlink_core::RobotView {
         id: "sim-01".into(),
         name: "sim-01".into(),
         kind: "sim".into(),

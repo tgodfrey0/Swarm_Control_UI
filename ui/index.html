@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SwarmDeck</title>
+  <title>Swarmlink</title>
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
   <link rel="stylesheet" href="/static/styles.css">
   <script>
@@ -21,11 +21,12 @@
 <body>
   <header>
     <div class="brand">
-      <img class="logo logo-light" src="/static/logo-light.svg" alt="SwarmDeck">
-      <img class="logo logo-dark" src="/static/logo-dark.svg" alt="SwarmDeck">
+      <img class="logo logo-light" src="/static/logo-light.svg" alt="Swarmlink">
+      <img class="logo logo-dark" src="/static/logo-dark.svg" alt="Swarmlink">
       <h1><span class="controller" id="controller-name"></span></h1>
     </div>
     <div class="header-right">
+      <button id="export-logs" type="button" class="clear-btn" title="Download all robots' logs as a zip">Download Logs</button>
       <button id="clear-all" type="button" class="clear-btn" title="Clear all logs and run history">Clear Logs &amp; Runs</button>
       <button id="theme-toggle" type="button" class="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">
         <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>

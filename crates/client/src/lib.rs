@@ -1,6 +1,6 @@
-//! Typed client for the SwarmDeck control host HTTP/WebSocket API.
+//! Typed client for the Swarmlink control host HTTP/WebSocket API.
 //!
-//! Every UI (the WebUI, `swarmdeck-cli`, future TUIs) is just a thin shell over
+//! Every UI (the WebUI, `swarmlink-cli`, future TUIs) is just a thin shell over
 //! the backend; this crate is that shared shell for Rust clients. The wire
 //! contract is documented in `docs/api.md`.
 
@@ -11,12 +11,12 @@ use futures_util::Stream;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use swarmdeck_core::{
+use swarmlink_core::{
     ActionsView, AdoptRequest, ApiTargets, ConfigView, Event, LogLine, RobotView, RunRequest,
     RunResponse, RunView, StopRequest, WorkflowRunRequest,
 };
 
-/// A ready-to-use client for the SwarmDeck host API.
+/// A ready-to-use client for the Swarmlink host API.
 #[derive(Debug, Clone)]
 pub struct Client {
     base: String,

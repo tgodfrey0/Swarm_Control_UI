@@ -2,12 +2,12 @@
 
 The agent protocol is the contract between robot agents and the control host.
 It is a single gRPC service defined in [`proto/swarm.proto`](../../proto/swarm.proto)
-(package `swarmdeck.v1`). Implement it if you want to:
+(package `swarmlink.v1`). Implement it if you want to:
 
-- **Write your own controller** -- replace `swarmdeck-host` with your own
+- **Write your own controller** -- replace `swarmlink-host` with your own
   dispatch logic while keeping the stock agent on robots.
-- **Write your own agent** -- integrate SwarmDeck into an existing robot
-  stack instead of running `swarmdeck-agent`.
+- **Write your own agent** -- integrate Swarmlink into an existing robot
+  stack instead of running `swarmlink-agent`.
 
 Reference implementations: agent side in `crates/agent/src/session.rs`,
 host side in `crates/host/src/grpc.rs` + `crates/host/src/registry.rs`.
