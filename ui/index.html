@@ -37,10 +37,22 @@
   </header>
 
   <main>
-    <section id="swarm">
-      <h2>Swarm</h2>
-      <div id="robots" class="grid"></div>
-    </section>
+    <div class="content">
+      <section id="swarm">
+        <h2>Swarm</h2>
+        <div id="robots" class="grid"></div>
+      </section>
+
+      <section id="logs">
+        <h2>Logs
+          <span id="log-robot" class="muted"></span>
+          <button id="log-follow" type="button" title="Toggle auto-scroll to newest lines">following…</button>
+          <button id="log-copy" type="button" title="Copy visible log lines to the clipboard">Copy</button>
+          <button id="log-download" type="button" title="Download visible log lines as a text file">Download</button>
+        </h2>
+        <div id="log-view" class="log"></div>
+      </section>
+    </div>
 
     <aside>
       <section>
@@ -75,16 +87,6 @@
         <div id="runs"></div>
       </section>
     </aside>
-
-    <section id="logs">
-      <h2>Logs
-        <span id="log-robot" class="muted"></span>
-        <button id="log-follow" type="button" title="Toggle auto-scroll to newest lines">following…</button>
-        <button id="log-copy" type="button" title="Copy visible log lines to the clipboard">Copy</button>
-        <button id="log-download" type="button" title="Download visible log lines as a text file">Download</button>
-      </h2>
-      <div id="log-view" class="log"></div>
-    </section>
   </main>
 
   <script src="/static/app.js"></script>

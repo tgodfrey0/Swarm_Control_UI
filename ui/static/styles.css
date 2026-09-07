@@ -98,14 +98,17 @@ header h1 { font-size: 16px; margin: 0; }
 main {
   display: grid;
   grid-template-columns: 1fr 340px;
-  grid-template-areas: "swarm side" "logs side";
   gap: 8px 16px;
   padding: 16px;
   max-width: 1500px;
   margin: 0 auto;
-  /* Sections hug their content instead of stretching to the tallest column —
-     otherwise empty panel space shows below the swarm grid / log view. */
-  align-items: start;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
 section {
@@ -114,9 +117,7 @@ section {
   border-radius: 10px;
   padding: 14px;
 }
-#swarm { grid-area: swarm; }
-aside { grid-area: side; display: flex; flex-direction: column; gap: 16px; }
-#logs { grid-area: logs; }
+aside { display: flex; flex-direction: column; gap: 16px; }
 
 h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 
@@ -138,7 +139,7 @@ h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacin
 .card .dot.never { background: var(--muted); }
 .card .dot.sim { background: var(--accent); }
 .card .meta { font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
-.card .active { font-size: 12px; color: var(--warn); margin-top: 6px; min-height: 1.2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .active { font-size: 12px; color: var(--warn); margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card.selected { outline: 2px solid var(--accent); }
 
 label { display: block; margin: 8px 0; font-size: 13px; color: var(--muted); }
@@ -269,5 +270,6 @@ button:disabled { opacity: .55; cursor: default; filter: none; }
 .muted { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
 @media (max-width: 900px) {
-  main { grid-template-columns: 1fr; grid-template-areas: "swarm" "side" "logs"; }
+  main { grid-template-columns: 1fr; }
+  .content, aside { grid-column: 1; }
 }

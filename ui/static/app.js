@@ -101,7 +101,7 @@ function renderRobots() {
     const cls = r.connected
       ? (r.simulated ? "dot sim" : "dot on")
       : (r.connected_since_ms > 0 ? "dot dropped" : "dot never");
-    const active = `<div class="active"${r.active ? ` title="${escapeHtml(r.active.action_name)}"` : ""}>${r.active ? "▶ " + escapeHtml(r.active.action_name) : ""}</div>`;
+    const active = r.active ? `<div class="active" title="${escapeHtml(r.active.action_name)}">▶ ${escapeHtml(r.active.action_name)}</div>` : "";
     const card = document.createElement("div");
     card.className = "card" + (state.selectedRobot === r.id ? " selected" : "");
     card.innerHTML = `
