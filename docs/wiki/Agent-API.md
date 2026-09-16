@@ -83,6 +83,11 @@ Sent once, first, on every (re)connect.
 | `agent_version` | string | Semantic version, shown in the UI (`RobotView.agent_version`). |
 | `hostname` | string | May be empty; displayed when set. |
 | `capabilities` | map<string,string> | Reserved -- currently always empty. |
+| `name` | string | Optional human-readable name (TOML or `--name` CLI arg). |
+| `type` | string | Robot type name (e.g. "sim", "uav"). Used as the default when adopting the robot; the swarm config still wins for pre-defined robots. |
+| `vars` | map<string,string> | Per-robot template variables (`{{vars.<key>}}`). Sent at registration so the host can use them immediately after adoption. |
+| `address` | string | SSH endpoint for provisioning. The host can store it so the operator doesn't have to re-enter it at adopt time. |
+| `simulated` | bool | True when the agent runs on the control host (mirrors `[[robots]].simulated`). |
 
 ### Heartbeat
 

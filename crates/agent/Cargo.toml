@@ -25,3 +25,6 @@ tonic = { workspace = true, features = ["tls-ring", "tls-webpki-roots"] }
 libc = "0.2"
 tokio-stream.workspace = true
 futures-util.workspace = true
+
+[lints]
+workspace = true

@@ -2,6 +2,7 @@
 //! Serialized with serde; the WebUI JS and `swarmlink-cli` both consume these.
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// Batch target selector. Resolved against the swarm by the host.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -59,9 +60,21 @@ pub struct WorkflowRunRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdoptRequest {
-    pub kind: String,
+    /// Robot type name. Optional when the agent reported its type at
+    /// registration — that value is used as the default.
+    #[serde(default)]
+    pub kind: Option<String>,
     #[serde(default)]
     pub name: Option<String>,
+    /// Overrides / additions to the agent-reported vars (merged per key).
+    #[serde(default)]
+    pub vars: Option<BTreeMap<String, String>>,
+    /// Overrides the agent-reported SSH address (None deletes).
+    #[serde(default)]
+    pub address: Option<String>,
+    /// Overrides the agent-reported simulated flag.
+    #[serde(default)]
+    pub simulated: Option<bool>,
 }
 
 /// Dispatchable actions served to the WebUI/CLI: robot-type actions as

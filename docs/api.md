@@ -103,7 +103,11 @@ API. All JSON is snake_case. Responses are never cached (the host sets
 { "workflow": "deploy_fleet", "confirm": false }
 
 // AdoptRequest — claim an unknown robot that phoned home.
-{ "kind": "turtlebot3", "name": "front-lidar" }   // name optional
+// `kind` is optional when the agent reported its type at registration.
+// Any supplied fields override the agent-reported values.
+{ "kind": "turtlebot3", "name": "front-lidar" }
+{ "vars": {"master": "udp:127.0.0.1:14550"} }
+{ "kind": "uav", "simulated": false }
 
 // RunView — one batch run (or one step within a workflow).
 {

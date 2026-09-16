@@ -1,3 +1,6 @@
 # Local config for the first sim robot (configs/sim/swarm.toml).
 extends = "agent-base.toml"
 robot_id = "sim-01"
+
+[vars]
+demo = "alpha"

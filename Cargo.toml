@@ -36,3 +36,10 @@ tokio-tungstenite = "0.26"
 swarmlink-core = { path = "crates/core" }
 swarmlink-proto = { path = "proto" }
 swarmlink-client = { path = "crates/client" }
+
+# rustc 1.97+ surfaces linker stderr as a warning by default. Zig's `cc` wrapper
+# (used by `cargo zigbuild` for the cross-compiled agent) emits a false-positive
+# "ignoring deprecated linker optimization setting" line, so allow that lint.
+# See https://github.com/rust-lang/rust/issues/158192
+[workspace.lints.rust]
+linker_messages = "allow"

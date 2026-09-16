@@ -69,10 +69,26 @@ pub fn provision(
         run_scp(&binary, &format!("{hoststr}:/tmp/.swarmlink/swarmlink-agent"))?;
 
         // 2. agent.toml (robot_id + controller endpoint + shared secret).
-        let agent_toml = format!(
-            "robot_id = {:?}\n\n[controller]\nendpoint = {:?}\nid_code = {:?}\ntls = false\n",
-            robot.id, controller, cfg.controller.id_code
+        //    Include the robot's type, address, simulated flag and vars so
+        //    the host can adopt it automatically without hard-coding robots
+        //    in swarm.toml.
+        let mut agent_toml = format!(
+            "robot_id = {:?}\n\
+             type     = {:?}\n\
+             address  = {:?}\n\
+             simulated = {}\n",
+            robot.id, robot.kind, robot.address.as_deref().unwrap_or(""), robot.simulated,
         );
+        if !robot.vars.is_empty() {
+            agent_toml.push_str("\n[vars]\n");
+            for (k, v) in &robot.vars {
+                agent_toml.push_str(&format!("{} = {:?}\n", k, v));
+            }
+        }
+        agent_toml.push_str(&format!(
+            "\n[controller]\nendpoint = {:?}\nid_code = {:?}\ntls = false\n",
+            controller, cfg.controller.id_code
+        ));
         let script = format!(
             "cat > /tmp/.swarmlink/agent.toml <<'EOF'\n{agent_toml}EOF\n\
              install -m 0755 /tmp/.swarmlink/swarmlink-agent /opt/swarm-agent/swarmlink-agent\n\

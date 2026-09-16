@@ -57,6 +57,7 @@ pub struct RobotEntry {
     pub simulated: bool,
     pub adopted: bool,
     pub address: Option<String>,
+    pub vars: BTreeMap<String, String>,
     pub connected: bool,
     pub connected_since_ms: u64,
     pub last_seen_ms: u64,
@@ -80,6 +81,7 @@ impl RobotEntry {
             simulated: false,
             adopted: false,
             address: None,
+            vars: BTreeMap::new(),
             connected: false,
             connected_since_ms: 0,
             last_seen_ms: 0,
@@ -234,7 +236,21 @@ impl Registry {
                     if !reg.name.is_empty() {
                         entry.name = reg.name.clone();
                     }
+                    // Agent-reported type, vars, address, simulated. The swarm
+                    // TOML wins over these for pre-defined robots; adopted
+                    // robots start from the values the agent advertised.
+                    if !reg.r#type.is_empty() {
+                        entry.kind = reg.r#type.clone();
+                    }
+                    for (k, v) in &reg.vars {
+                        entry.vars.insert(k.clone(), v.clone());
+                    }
+                    if !reg.address.is_empty() {
+                        entry.address = Some(reg.address.clone());
+                    }
+                    entry.simulated = reg.simulated;
                 }
+                self.auto_adopt(robot_id).await;
                 self.publish_robot(robot_id).await;
             }
             M::Heartbeat(_) => {
@@ -561,14 +577,44 @@ impl Registry {
         out
     }
 
-    /// Adopt a robot that phoned home but isn't in the config file.
-    pub async fn adopt(&self, id: &str, kind: &str, name: Option<&str>) -> Result<()> {
+    /// Adopt a robot that phoned home but isn't in the config file. The
+    /// robot's `kind` (required unless given in the agent's registration) is
+    /// validated against the loaded robot types; every other field defaults
+    /// to what the agent reported at registration and can be overridden.
+    pub async fn adopt(
+        &self,
+        id: &str,
+        kind: &str,
+        name: Option<&str>,
+        vars: Option<&BTreeMap<String, String>>,
+        address: Option<Option<&str>>,
+        simulated: Option<bool>,
+    ) -> Result<()> {
+        // Snapshot the agent-reported entry so adoption can start from what
+        // the robot advertised (defaults to empty if it never registered).
+        let reported = {
+            let robots = self.robots.read().await;
+            robots
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| RobotEntry::new(id.to_string()))
+        };
+        let kind = if !kind.is_empty() {
+            kind.to_string()
+        } else {
+            reported.kind.clone()
+        };
+        if kind.is_empty() {
+            return Err(ConfigError::NoAgentType {
+                robot: id.to_string(),
+            });
+        }
         {
             let cfg = self.config.read().await;
-            if !cfg.robot_types.contains_key(kind) {
+            if !cfg.robot_types.contains_key(&kind) {
                 return Err(ConfigError::UnknownRobotType {
                     robot: id.to_string(),
-                    kind: kind.to_string(),
+                    kind,
                 });
             }
             if cfg.robots.iter().any(|r| r.id == id) {
@@ -586,13 +632,31 @@ impl Registry {
         }
         {
             let mut cfg = self.config.write().await;
+            let mut robot_vars = reported.vars.clone();
+            if let Some(vars) = vars {
+                for (k, v) in vars {
+                    robot_vars.insert(k.clone(), v.clone());
+                }
+            }
+            let robot_address = match address {
+                Some(Some(a)) => Some(a.to_string()),
+                Some(None) => None,
+                None => reported.address.clone(),
+            };
+            let robot_simulated = simulated.unwrap_or(reported.simulated);
             cfg.robots.push(RobotConfig {
                 id: id.to_string(),
-                name: name.map(|n| n.to_string()),
-                kind: kind.to_string(),
-                address: None,
-                simulated: false,
-                vars: Default::default(),
+                name: name.map(|n| n.to_string()).or_else(|| {
+                    if reported.name != id {
+                        Some(reported.name.clone())
+                    } else {
+                        None
+                    }
+                }),
+                kind: kind.clone(),
+                address: robot_address,
+                simulated: robot_simulated,
+                vars: robot_vars,
                 env: Default::default(),
                 adopted: true,
             });
@@ -600,16 +664,45 @@ impl Registry {
         {
             let mut robots = self.robots.write().await;
             if let Some(entry) = robots.get_mut(id) {
-                entry.kind = kind.to_string();
+                entry.kind = kind.clone();
                 entry.name = name
                     .map(|n| n.to_string())
-                    .unwrap_or_else(|| id.to_string());
+                    .unwrap_or_else(|| entry.name.clone());
                 entry.adopted = true;
             }
         }
         tracing::info!(robot = id, kind, "robot adopted");
         self.publish_robot(id).await;
         Ok(())
+    }
+
+    // Adopt a robot automatically when it registers with a type the host
+    // knows about. id_code was already validated at the gRPC layer, and the
+    // adopted fields start from what the agent advertised. Robots already
+    // defined in the swarm config are never re-adopted.
+    async fn auto_adopt(&self, robot_id: &str) {
+        let kind = if let Some(e) = self.robots.read().await.get(robot_id) {
+            e.kind.clone()
+        } else {
+            return;
+        };
+        if kind.is_empty() {
+            tracing::info!(robot = robot_id, "no type reported; leaving unadopted");
+            return;
+        }
+        if self
+            .config
+            .read()
+            .await
+            .robots
+            .iter()
+            .any(|r| r.id == robot_id)
+        {
+            return;
+        }
+        if let Err(e) = self.adopt(robot_id, &kind, None, None, None, None).await {
+            tracing::warn!(robot = robot_id, error = %e, "auto-adopt skipped");
+        }
     }
 
     /// Release a previously adopted robot: remove it from the in-memory config

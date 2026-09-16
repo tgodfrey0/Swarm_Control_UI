@@ -157,12 +157,29 @@ receive the swarm values as well.
 
 ```toml
 robot_id = "tb-01"
+type     = "turtlebot3"
+address  = "10.0.0.21"
+simulated = false
+
+[vars]
+ns    = "tb01"
+model = "burger"
+
+[env]
+ROS_DOMAIN_ID = "42"
 
 [controller]
 endpoint = "100.64.0.1:50051"
 id_code  = "lab1-swarm-secret"
 tls      = false
 ```
+
+All per-robot fields from `swarm.toml`'s `[[robots]]` table (except
+`adopted`, which is a runtime flag) can be placed in the agent config.
+When a robot phones home, the host uses these values for adoption
+automatically — the operator only needs to pick the robot type (or let the
+agent-reported type take effect) and can optionally override individual
+fields.
 
 ### Generic agent config (`extends`)
 
@@ -172,6 +189,10 @@ itself; tables are merged key-by-key, scalars replaced — the child wins.
 
 ```toml
 # configs/sim/agent-base.toml — shared by every sim agent
+type       = "sim"
+simulated  = true
+address    = "127.0.0.1"
+
 [controller]
 endpoint = "127.0.0.1"
 id_code  = "sim-swarm-secret"
@@ -181,6 +202,9 @@ id_code  = "sim-swarm-secret"
 # configs/sim/agent-1.toml — per-agent override
 extends = "agent-base.toml"
 robot_id = "sim-01"
+
+[vars]
+demo = "alpha"
 ```
 
 ## Host Defaults

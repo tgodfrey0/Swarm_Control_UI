@@ -26,7 +26,7 @@ struct Args {
 }
 
 fn setup_logging(name: &str) -> WorkerGuard {
-    let filter = EnvFilter::from_default_env();
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     std::fs::create_dir_all("logs").ok();
 
     let ts = chrono::Local::now().format("%Y%m%d-%H%M%S");

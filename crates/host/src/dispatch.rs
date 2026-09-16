@@ -8,8 +8,8 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 
 use swarmlink_core::{
-    resolve_command, ApiTargets, ConfigError, Event, Result as CoreResult, RunRequest, RunResponse,
-    RunRobotStatus, RunView, WorkflowOnFailure, WorkflowRunInfo,
+    resolve_command, AdoptRequest, ApiTargets, ConfigError, Event, Result as CoreResult,
+    RunRequest, RunResponse, RunRobotStatus, RunView, WorkflowOnFailure, WorkflowRunInfo,
 };
 use swarmlink_proto::v1::{command::Command as CommandMsg, Command, RunAction, StopAction};
 
@@ -367,8 +367,18 @@ impl Dispatcher {
         Ok(stopped)
     }
 
-    pub async fn adopt(&self, id: &str, kind: &str, name: Option<&str>) -> CoreResult<()> {
-        self.registry.adopt(id, kind, name).await
+    pub async fn adopt(&self, id: &str, req: AdoptRequest) -> CoreResult<()> {
+        let kind = req.kind.unwrap_or_default();
+        self.registry
+            .adopt(
+                id,
+                &kind,
+                req.name.as_deref(),
+                req.vars.as_ref(),
+                Some(req.address.as_deref()),
+                req.simulated,
+            )
+            .await
     }
 
     /// Release an adopted robot (see `Registry::release`).

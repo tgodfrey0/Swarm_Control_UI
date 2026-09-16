@@ -31,6 +31,16 @@ message Register {
   map<string, string> capabilities = 5;
   // Optional human-readable name supplied by the agent (TOML or CLI).
   string name = 6;
+  // Robot type name (mirrors the swarm config `[[robots]].type`). The host
+  // uses it as the default when adopting the robot; the swarm config still
+  // wins for pre-defined robots.
+  string type = 7;
+  // Per-robot template variables (mirrors `[[robots]].vars`).
+  map<string, string> vars = 8;
+  // SSH endpoint for provisioning (mirrors `[[robots]].address`).
+  string address = 9;
+  // True when the agent runs on the control host (mirrors `[[robots]].simulated`).
+  bool simulated = 10;
 }
 
 message Heartbeat {

@@ -178,13 +178,16 @@ impl Client {
     pub async fn adopt(
         &self,
         robot: &str,
-        kind: &str,
+        kind: Option<&str>,
         name: Option<&str>,
     ) -> Result<(), ClientError> {
         let url = self.url(&format!("/api/adopt/{robot}"));
         let body = AdoptRequest {
-            kind: kind.to_string(),
+            kind: kind.map(str::to_string),
             name: name.map(str::to_string),
+            vars: None,
+            address: None,
+            simulated: None,
         };
         self.post_empty(&url, &body).await
     }

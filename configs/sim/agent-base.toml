@@ -2,6 +2,10 @@
 # Per-agent files (agent-N.toml) extend this and only override what differs
 # (usually just robot_id). See AgentConfig::load_merged in crates/core.
 
+type = "sim"
+simulated = true
+address = "127.0.0.1"
+
 [controller]
 endpoint = "127.0.0.1"
 id_code  = "sim-swarm-secret"

@@ -90,11 +90,23 @@ On the robot, run the install script:
 ```sh
 ./deploy/install-agent.sh                           # auto-detect binary + default config
 ./deploy/install-agent.sh --bin /path/to/swarmlink-agent  # explicit binary
+
+# Configure the agent at the same time (existing values are kept, flags win):
+./deploy/install-agent.sh \
+  --robot-id uav-01 --name mav-1 --type uav \
+  --endpoint 100.64.0.1:50051 --id-code uav_swarm \
+  --address cm5-01.tailnet.ts.net \
+  --var master=udp:127.0.0.1:14550 --var alt_m=10.0
 ```
+
+Run `./deploy/install-agent.sh --help` for the full list of override flags
+(`--robot-id`, `--name`, `--type`, `--address`, `--simulated`, `--var`,
+`--env`, `--endpoint`, `--id-code`, `--tls`, `--ca`, `--server-name`).
 
 This installs:
 - Binary → `/opt/swarm-agent/swarmlink-agent`
-- Config → `/etc/swarm-agent/agent.toml` (creates a placeholder if missing — **edit it**)
+- Config → `/etc/swarm-agent/agent.toml` (creates a placeholder if missing, or
+  writes/merges the values passed on the command line)
 - Service → `/etc/systemd/system/swarmlink-agent.service`
 
 ### systemd Commands
@@ -124,6 +136,13 @@ ls /opt/swarm-agent/logs/
 
 ```toml
 robot_id = "tb-01"
+type     = "turtlebot3"
+address  = "10.0.0.21"
+simulated = false
+
+[vars]
+ns    = "tb01"
+model = "burger"
 
 [controller]
 endpoint = "10.0.0.1:50051"
@@ -141,6 +160,12 @@ the child only states what differs:
 
 ```toml
 # agent-base.toml — shared by every robot
+type     = "turtlebot3"
+simulated = false
+
+[vars]
+site = "lab-1"
+
 [controller]
 endpoint = "10.0.0.1:50051"
 id_code  = "lab1-swarm-secret"
@@ -150,6 +175,11 @@ id_code  = "lab1-swarm-secret"
 # tb-01.toml — per-robot override
 extends = "agent-base.toml"
 robot_id = "tb-01"
+name     = "turtlebot-1"
+
+[vars]
+ns    = "tb01"
+model = "burger"
 ```
 
 **`--robot-id`** — point every agent at the same base config and pass the id
@@ -159,6 +189,20 @@ as a flag:
 ./bin/swarmlink-agent --config agent-base.toml --robot-id sim-01
 ./bin/swarmlink-agent --config agent-base.toml --robot-id sim-02
 ```
+
+For ArduPilot UAVs on CM5 companion computers, the shared base lives in
+`configs/ardupilot/agent-base.toml` (points at the host and uses the
+`uav_swarm` id_code). Copy it to each CM5 and start with the vehicle's id:
+
+```sh
+sudo install -m 0600 configs/ardupilot/agent-base.toml /etc/swarm-agent/agent.toml
+# Add --robot-id uav-XX to ExecStart in the systemd unit, or run directly:
+sudo /opt/swarm-agent/swarmlink-agent --config /etc/swarm-agent/agent.toml --robot-id uav-01
+```
+
+The matching `uav` robot type (arm/takeoff/land actions via MAVProxy) is in
+`robots/uav.toml`. Smoke-test the one-shot command syntax on the CM5 before
+trusting it to arm a real vehicle.
 
 ### Logs
 

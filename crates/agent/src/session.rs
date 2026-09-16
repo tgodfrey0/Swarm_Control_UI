@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use tokio::sync::mpsc;
-use tokio::time::{interval, sleep, Duration, MissedTickBehavior};
+use tokio::time::{interval, sleep, timeout, Duration, MissedTickBehavior};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Code;
 
@@ -61,7 +61,10 @@ async fn session_once(cfg: &AgentConfig, runner: Arc<Runner>) -> anyhow::Result<
             .tls_config(tls)
             .map_err(|e| anyhow::anyhow!("invalid TLS config: {e}"))?;
     }
-    let channel = channel.connect().await?;
+    tracing::info!(endpoint = %cfg.controller.endpoint, "connecting to controller");
+    let channel = timeout(Duration::from_secs(5), channel.connect())
+        .await
+        .map_err(|_| anyhow::anyhow!("controller connection timed out after 5s"))??;
     let mut client = AgentClient::new(channel);
 
     let (report_tx, report_rx) = mpsc::channel::<Report>(REPORT_BUFFER);
@@ -79,6 +82,10 @@ async fn session_once(cfg: &AgentConfig, runner: Arc<Runner>) -> anyhow::Result<
                 hostname: hostname(),
                 capabilities: Default::default(),
                 name: cfg.name.clone().unwrap_or_default(),
+                r#type: cfg.kind.clone(),
+                vars: cfg.vars.clone().into_iter().collect(),
+                address: cfg.address.clone().unwrap_or_default(),
+                simulated: cfg.simulated,
             })),
         })
         .await

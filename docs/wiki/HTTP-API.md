@@ -45,6 +45,22 @@ Base URL: `http://<host>:<ui-bind>` (see `ControllerConfig.ui_bind`)
 }
 ```
 
+### AdoptRequest
+
+All fields are optional overrides. Values not supplied fall back to what the
+agent reported at registration (its `type`, `name`, `address`, `simulated` and
+`vars`); the operator only needs to fill in anything the agent didn't send.
+
+```json
+{
+  "kind": "turtlebot3",
+  "name": "tb-01",
+  "address": "10.0.0.5",
+  "simulated": false,
+  "vars": { "ns": "tb01" }
+}
+```
+
 ### RunRequest
 
 ```json

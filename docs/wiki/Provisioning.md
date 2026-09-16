@@ -47,12 +47,22 @@ Written to `/etc/swarm-agent/agent.toml`:
 
 ```toml
 robot_id = "tb-01"
+type     = "turtlebot3"
+address  = "10.0.0.21"
+simulated = false
+
+[vars]
+ns    = "tb01"
+model = "burger"
 
 [controller]
 endpoint = "100.64.0.1:50051"
 id_code  = "lab1-swarm-secret"
 tls      = false
 ```
+
+Type, address and vars are copied from the swarm config's `[[robots]]` entry so
+the host can adopt the robot with its identity already populated.
 
 ### Systemd Unit
 
@@ -83,3 +93,33 @@ Robots are skipped if:
 ```sh
 ./bin/swarmlink-cli provision --config configs/lab/swarm.toml --user pi --robots tb-01
 ```
+
+## Manual Install (`install-agent.sh`)
+
+On a robot without SSH provisioning, `deploy/install-agent.sh` installs the
+binary, writes `agent.toml`, and enables the systemd unit. Config fields can be
+passed as flags — existing values in the target config are kept and the flags
+win:
+
+```sh
+sudo ./deploy/install-agent.sh \
+  --robot-id uav-01 --name mav-1 --type uav \
+  --endpoint 100.64.0.1:50051 --id-code uav_swarm \
+  --address cm5-01.tailnet.ts.net \
+  --var master=udp:127.0.0.1:14550 --var alt_m=10.0
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--bin <path>` | Agent binary (default: auto-detected from `bin/`/`target/`) |
+| `--config <path>` | Config file to write (default: `/etc/swarm-agent/agent.toml`) |
+| `--robot-id`, `--name`, `--type`, `--address` | Top-level robot fields |
+| `--simulated <bool>` | Mark the agent as running on the host |
+| `--var KEY=VALUE` | Add a `[vars]` entry (repeatable) |
+| `--env KEY=VALUE` | Add an `[env]` entry (repeatable) |
+| `--endpoint`, `--id-code` | Controller connection |
+| `--tls <bool>`, `--ca`, `--server-name` | Controller TLS options |
+| `--force` | Rewrite the config even when no flags changed |
+
+If the config already exists and no override flags are given, the script
+leaves it untouched.

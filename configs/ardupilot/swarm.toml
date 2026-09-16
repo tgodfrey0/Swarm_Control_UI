@@ -1,0 +1,23 @@
+# ArduPilot UAV swarm. Agents run on CM5 companion computers and phone home
+# here (Tailscale), so there is nothing to provision over SSH until each
+# CM5's address is filled in below.
+#
+# Start the host with:
+#   swarmlink --config configs/ardupilot/swarm.toml
+# The `uav` robot type (arm/takeoff/land) is merged from robots/ (default
+# `--robot-types robots`).
+#
+# No swarm-level actions or workflows: pick from the per-robot-type set:
+#   uav.arm, uav.takeoff, uav.land
+#
+# Robots are adopted automatically when they phone home — no need to
+# hard-code them here. Each CM5 agent carries its own vars (master, alt_m,
+# address) in its agent.toml. Pre-defined entries below are optional and
+# only needed to pre-populate the swarm config; for per-experiment tuning
+# (e.g. a different name), the swarm TOML's per-robot fields still win.
+
+[controller]
+name = "uav-ctrl"
+id_code = "uav_swarm"
+grpc_listen = "0.0.0.0:50051"
+ui_bind = "0.0.0.0:8080"

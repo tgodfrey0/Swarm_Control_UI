@@ -149,7 +149,10 @@ fn response_round_trips() {
     let s: StopRequest = serde_json::from_value(json!({ "targets": "all" })).unwrap();
     assert!(matches!(s.targets, ApiTargets::All));
     let a: AdoptRequest = serde_json::from_value(json!({ "kind": "sim" })).unwrap();
-    assert_eq!(a.kind, "sim");
+    assert_eq!(a.kind.as_deref(), Some("sim"));
+    // kind is optional — omitting it means "use agent-reported type".
+    let a2: AdoptRequest = serde_json::from_value(json!({})).unwrap();
+    assert!(a2.kind.is_none());
     let r: RunView = serde_json::from_value(json!({
         "run_id": "r1",
         "action": "sim.echo",

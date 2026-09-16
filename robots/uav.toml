@@ -1,0 +1,24 @@
+# ArduPilot UAVs running the swarmlink agent on a CM5 companion computer.
+# Actions are one-shot MAVProxy invocations (`--cmd=...quit`) so the action
+# returns and the agent doesn't hang in the interactive MAVProxy console.
+#
+# Per-UAV vars the swarm config must provide:
+#   master  — connection to the flight controller, e.g. "udp:127.0.0.1:14550"
+#             or a serial port like "/dev/ttyACM0",115200
+#   alt_m   — takeoff altitude in metres
+
+[robot_types.uav]
+display_name = "ArduPilot UAV"
+
+[robot_types.uav.actions.arm]
+command = "~/.local/bin/mavproxy.py --master={{vars.master}} --cmd=\"long 400 1 0 0 0 0 0 0\" --cmd=\"quit\""
+timeout_sec = 60
+
+[robot_types.uav.actions.takeoff]
+command = "~/.local/bin/mavproxy.py --master={{vars.master}} --cmd=\"long 22 0 0 0 0 0 0 {{vars.alt_m}}\" --cmd=\"quit\""
+timeout_sec = 120
+
+[robot_types.uav.actions.land]
+command = "~/.local/bin/mavproxy.py --master={{vars.master}} --cmd=\"long 21 0 0 0 0 0 0 0\" --cmd=\"quit\""
+timeout_sec = 120
+dangerous = true

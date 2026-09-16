@@ -141,16 +141,18 @@ async fn list_types(State(state): State<AppState>) -> Json<Vec<String>> {
 
 async fn list_actions(State(state): State<AppState>) -> Json<ActionsView> {
     let cfg = state.registry.config.read().await;
-    let active_types: std::collections::HashSet<&str> = cfg
+    let live = state.registry.robots.read().await;
+    let in_swarm: std::collections::HashSet<&str> = cfg
         .robots
         .iter()
         .map(|r| r.kind.as_str())
+        .chain(live.values().map(|e| e.kind.as_str()))
         .filter(|k| !k.is_empty())
         .collect();
     let mut robot_type: Vec<String> = cfg
         .robot_types
         .iter()
-        .filter(|(ty, _)| active_types.contains(ty.as_str()))
+        .filter(|(ty, _)| in_swarm.contains(ty.as_str()))
         .flat_map(|(ty, t)| t.actions.keys().map(move |a| format!("{ty}.{a}")))
         .collect();
     robot_type.sort();
@@ -160,6 +162,9 @@ async fn list_actions(State(state): State<AppState>) -> Json<ActionsView> {
     workflows.sort();
     let mut type_workflows: Vec<String> = Vec::new();
     for (ty, ty_cfg) in &cfg.robot_types {
+        if !in_swarm.contains(ty.as_str()) {
+            continue;
+        }
         for wf_name in ty_cfg.workflows.keys() {
             type_workflows.push(format!("{ty}.{wf_name}"));
         }
@@ -331,11 +336,7 @@ async fn adopt_robot(
     Path(robot): Path<String>,
     Json(req): Json<AdoptRequest>,
 ) -> ApiResult<impl IntoResponse> {
-    match state
-        .dispatcher
-        .adopt(&robot, &req.kind, req.name.as_deref())
-        .await
-    {
+    match state.dispatcher.adopt(&robot, req).await {
         Ok(()) => Ok(StatusCode::OK),
         Err(e) => Err(err(e)),
     }

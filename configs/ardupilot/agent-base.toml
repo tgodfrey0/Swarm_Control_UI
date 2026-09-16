@@ -1,0 +1,18 @@
+# Base agent config for ArduPilot UAVs. Shared by every CM5 companion
+# computer; per-UAV identity is supplied with --robot-id at startup (or via an
+# extending TOML, sim-style). Pair with the `uav` robot type in robots/uav.toml
+# when you build the swarm config.
+#
+# Each CM5 carries its vars (master, alt_m) so the host can adopt it
+# automatically without hard-coding robots in swarm.toml.
+
+type = "uav"
+simulated = false
+
+[vars]
+master = "udp:127.0.0.1:14550"
+alt_m  = "1.0"
+
+[controller]
+endpoint = "100.124.79.115:50051"
+id_code  = "uav_swarm"

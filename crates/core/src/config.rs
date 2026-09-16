@@ -326,7 +326,9 @@ impl RobotConfig {
 }
 
 /// Runtime configuration written to `/etc/swarm-agent/agent.toml` by the
-/// provisioner and read by `swarmlink-agent`.
+/// provisioner and read by `swarmlink-agent`. Fields mirror the neutral
+/// per-robot fields from `RobotConfig` so an agent can carry its own identity
+/// for adoption — the host uses them when a robot phones home and is adopted.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentConfig {
@@ -339,8 +341,26 @@ pub struct AgentConfig {
     /// for pre-defined robots.
     #[serde(default)]
     pub name: Option<String>,
+    /// Robot type name (e.g. "sim", "uav"). Used by the host as the default
+    /// `type` when adopting the robot. For pre-defined robots the swarm TOML
+    /// still wins.
+    #[serde(default)]
+    #[serde(rename = "type")]
+    pub kind: String,
+    /// SSH endpoint for provisioning. The host can use this when adopting the
+    /// robot so the operator doesn't have to re-enter it.
+    #[serde(default)]
+    pub address: Option<String>,
+    /// True for agents that run on the control host (e.g. sim nodes). Mirrors
+    /// `[[robots]].simulated`.
+    #[serde(default)]
+    pub simulated: bool,
+    /// Per-robot template variables (`{{vars.<key>}}`) sent to the host at
+    /// registration. Available immediately after adoption.
+    #[serde(default)]
+    pub vars: BTreeMap<String, String>,
     pub controller: AgentControllerConfig,
-    /// Robot-local environment inherited by every spawned action process.
+    /// Extra environment inherited by every spawned action process.
     #[serde(default)]
     pub env: BTreeMap<String, String>,
 }
@@ -538,6 +558,94 @@ mod tests {
         )
         .unwrap();
         assert_eq!(cfg.robot_id, "r-3");
+    }
+
+    #[test]
+    fn agent_config_new_fields_parse() {
+        let cfg = load(
+            &[(
+                "full.toml",
+                "robot_id = \"r-1\"\n\
+                 name = \"my-robot\"\n\
+                 type = \"uav\"\n\
+                 address = \"10.0.0.5\"\n\
+                 simulated = true\n\
+                 \n\
+                 [vars]\n\
+                 master = \"udp:127.0.0.1:14550\"\n\
+                 alt_m = \"10.0\"\n\
+                 \n\
+                 [controller]\n\
+                 endpoint = \"10.0.0.1\"\n\
+                 id_code = \"s3cret\"\n",
+            )],
+            "full.toml",
+        )
+        .unwrap();
+        assert_eq!(cfg.robot_id, "r-1");
+        assert_eq!(cfg.name.as_deref(), Some("my-robot"));
+        assert_eq!(cfg.kind, "uav");
+        assert_eq!(cfg.address.as_deref(), Some("10.0.0.5"));
+        assert!(cfg.simulated);
+        assert_eq!(
+            cfg.vars.get("master").map(String::as_str),
+            Some("udp:127.0.0.1:14550")
+        );
+        assert_eq!(cfg.vars.get("alt_m").map(String::as_str), Some("10.0"));
+    }
+
+    #[test]
+    fn agent_config_new_fields_default() {
+        let cfg = load(
+            &[(
+                "base.toml",
+                "robot_id = \"r\"\n[controller]\nendpoint = \"10.0.0.1\"\nid_code = \"s3cret\"\n",
+            )],
+            "base.toml",
+        )
+        .unwrap();
+        assert_eq!(cfg.kind, "");
+        assert!(cfg.address.is_none());
+        assert!(!cfg.simulated);
+        assert!(cfg.vars.is_empty());
+    }
+
+    #[test]
+    fn agent_config_extends_merges_vars() {
+        let cfg = load(
+            &[
+                (
+                    "base.toml",
+                    "robot_id = \"r\"\n\
+                     \n\
+                     [vars]\n\
+                     master = \"udp:127.0.0.1:14550\"\n\
+                     \n\
+                     [controller]\n\
+                     endpoint = \"10.0.0.1\"\nid_code = \"s3cret\"\n",
+                ),
+                (
+                    "child.toml",
+                    "extends = \"base.toml\"\n\
+                     name = \"uav-01\"\n\
+                     type = \"uav\"\n\
+                     \n\
+                     [vars]\n\
+                     alt_m = \"15.0\"\n",
+                ),
+            ],
+            "child.toml",
+        )
+        .unwrap();
+        assert_eq!(cfg.robot_id, "r");
+        assert_eq!(cfg.name.as_deref(), Some("uav-01"));
+        assert_eq!(cfg.kind, "uav");
+        // Base vars inherited, child vars added.
+        assert_eq!(
+            cfg.vars.get("master").map(String::as_str),
+            Some("udp:127.0.0.1:14550")
+        );
+        assert_eq!(cfg.vars.get("alt_m").map(String::as_str), Some("15.0"));
     }
 }
 

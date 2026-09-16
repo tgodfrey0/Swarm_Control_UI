@@ -19,6 +19,9 @@ pub enum ConfigError {
     #[error("robot '{robot}' is not defined in the swarm and has no type; adopt it first")]
     UnadoptedRobot { robot: String },
 
+    #[error("robot '{robot}' has no type; specify a type to adopt it")]
+    NoAgentType { robot: String },
+
     #[error("unknown robot id '{id}'")]
     UnknownRobot { id: String },
 
